@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+local_settings.py
+mrdeveloper.cfg
+.env
+.venvrc
+PYTHONHASHSEED
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+.pytest_cache/
+.coverage.*
+coverage.xml
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+wheels/
+*.egg
+MANIFEST
+
+# YOLOv8/ML
+runs/
+weights/
+models/
+datasets/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+wardrobe.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NODE
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+dist/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Production
+build/prod
+
+# Logs
+*.log
