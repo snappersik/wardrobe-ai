@@ -1,13 +1,11 @@
 from app.schemas.schemas import (
-    UserCreate, UserResponse,
-    ClothingCreate, ClothingResponse,
-    OutfitCreate, OutfitResponse, OutfitItemResponse,
-    FeedbackCreate, FeedbackResponse
+    UserCreate, UserResponse, UserLogin,
+    ClothingItemCreate, ClothingItemResponse,
+    OutfitCreate, OutfitResponse
 )
 
 __all__ = [
-    "UserCreate", "UserResponse",
-    "ClothingCreate", "ClothingResponse",
-    "OutfitCreate", "OutfitResponse", "OutfitItemResponse",
-    "FeedbackCreate", "FeedbackResponse"
+    "UserCreate", "UserResponse", "UserLogin",
+    "ClothingItemCreate", "ClothingItemResponse",
+    "OutfitCreate", "OutfitResponse"
 ]

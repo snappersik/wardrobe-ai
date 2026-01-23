@@ -1,60 +1,40 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-import os
-from app.db.database import Base, engine
-from app.models.models import User, Clothing, Outfit, OutfitItem, Feedback
-from app.api import users, clothes, outfits, feedback
+from app.api import api_router
+from app.api import users, clothing, outfits
+from app.db.database import engine
+from app.models.models import Base
 
-# Создай таблицы в БД
-Base.metadata.create_all(bind=engine)
-
-# Инициализация FastAPI приложения
 app = FastAPI(
     title="Wardrobe AI API",
-    description="API для приложения 'Гардероб с ИИ'",
-    version="0.1.0",
-    docs_url="/docs",
-    openapi_url="/openapi.json"
+    description="AI-powered wardrobe management system",
+    version="1.0.0"
 )
 
-# CORS настройки
+# CORS для React-фронтенда
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
+    allow_origins=["http://localhost:5173"],  # Vite dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Проверка папки uploads
-if not os.path.exists("uploads"):
-    os.makedirs("uploads")
+# Подключаем роуты из каждого модуля
+app.include_router(users.router, prefix="/api")
+app.include_router(clothing.router, prefix="/api")
+app.include_router(outfits.router, prefix="/api")
 
-# Регистрация маршрутов
-app.include_router(users.router)
-app.include_router(clothes.router)
-app.include_router(outfits.router)
-app.include_router(feedback.router)
-
-# Корневые маршруты
 @app.get("/")
 async def root():
-    return {
-        "message": "Welcome to Wardrobe AI API 👕",
-        "status": "Server is running ✅",
-        "docs": "http://localhost:8000/docs",
-        "version": "0.1.0"
-    }
+    return {"message": "Wardrobe AI Backend is running!"}
 
-@app.get("/api/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "version": "0.1.0",
-        "database": "✅ Connected"
-    }
+# Для разработки:
+# @app.on_event("startup")
+# async def startup():
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

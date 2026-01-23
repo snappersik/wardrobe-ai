@@ -1,88 +1,100 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional, List
 from datetime import datetime
-from typing import List, Optional
 
-# ========== USER SCHEMAS ==========
+# === User Schemas ===
+
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
-    city: str = "Moscow"
+    full_name: Optional[str] = None
+    city: Optional[str] = "Moscow"
+
+class UserLogin(BaseModel):
+    username_or_email: str
+    password: str
 
 class UserResponse(BaseModel):
     id: int
     username: str
-    email: str
+    email: EmailStr
+    full_name: Optional[str] = None
     city: str
     created_at: datetime
-
+    
     class Config:
         from_attributes = True
 
+# === Clothing Schemas ===
 
-# ========== CLOTHING SCHEMAS ==========
-class ClothingCreate(BaseModel):
-    clothing_type: str
-    color: str
-    material: str
-    brand: Optional[str] = None
-    season: str
+class ClothingItemCreate(BaseModel):
+    category: Optional[str] = None
+    color: Optional[str] = None
+    season: Optional[str] = None
+    style: Optional[str] = None
 
-class ClothingResponse(BaseModel):
+class ClothingItemResponse(BaseModel):
     id: int
-    user_id: int
+    owner_id: int
+    filename: str
     image_path: str
-    clothing_type: str
-    color: str
-    material: str
-    brand: Optional[str]
-    season: str
+    category: Optional[str] = None
+    color: Optional[str] = None
+    season: Optional[str] = None
+    style: Optional[str] = None
+    wear_count: int
+    is_clean: bool
     created_at: datetime
-
+    
     class Config:
         from_attributes = True
 
-
-# ========== OUTFIT SCHEMAS ==========
-class OutfitItemResponse(BaseModel):
-    clothing_id: int
-    clothing: ClothingResponse
-
-    class Config:
-        from_attributes = True
+# === Outfit Schemas ===
 
 class OutfitCreate(BaseModel):
+    """Создание образа с выбором вещей"""
     name: Optional[str] = None
-    weather_condition: Optional[str] = None
-    temperature: Optional[float] = None
+    target_season: Optional[str] = None
+    target_weather: Optional[str] = None
+    item_ids: List[int]  
+
+class OutfitUpdate(BaseModel):
+    """Обновление образа (название, сезон, погода)"""
+    name: Optional[str] = None
+    target_season: Optional[str] = None
+    target_weather: Optional[str] = None
+    is_favorite: Optional[bool] = None
+
+class OutfitAddItems(BaseModel):
+    """Добавление вещей в существующий образ"""
+    item_ids: List[int]
 
 class OutfitResponse(BaseModel):
+    """Краткая информация об образе (без списка вещей)"""
     id: int
-    user_id: int
-    name: Optional[str]
-    weather_condition: Optional[str]
-    temperature: Optional[float]
-    rating: float
-    items: List[OutfitItemResponse]
+    owner_id: int
+    name: Optional[str] = None
+    is_favorite: bool
+    created_by_ai: bool
+    target_season: Optional[str] = None
+    target_weather: Optional[str] = None
     created_at: datetime
-
+    
     class Config:
         from_attributes = True
 
-
-# ========== FEEDBACK SCHEMAS ==========
-class FeedbackCreate(BaseModel):
-    outfit_id: int
-    is_liked: bool
-    comment: Optional[str] = None
-
-class FeedbackResponse(BaseModel):
+class OutfitDetailResponse(BaseModel):
+    """Полная информация об образе (СО СПИСКОМ ВЕЩЕЙ)"""
     id: int
-    user_id: int
-    outfit_id: int
-    is_liked: bool
-    comment: Optional[str]
+    owner_id: int
+    name: Optional[str] = None
+    is_favorite: bool
+    created_by_ai: bool
+    target_season: Optional[str] = None
+    target_weather: Optional[str] = None
     created_at: datetime
-
+    items: List[ClothingItemResponse]  
+    
     class Config:
         from_attributes = True

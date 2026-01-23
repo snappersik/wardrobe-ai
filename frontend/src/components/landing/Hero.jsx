@@ -1,0 +1,91 @@
+import { useState, useEffect } from 'react';
+
+const Hero = () => {
+  return (
+    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden" data-name="Hero" data-file="components/Hero.js">
+      <div className="container-custom">
+        <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
+          
+          <div className="w-full md:w-1/2 flex flex-col items-start text-left z-10">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-pink-50 text-[var(--primary-color)] text-sm font-semibold mb-6">
+              ✨ Искусственный интеллект для твоего стиля
+            </div>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+              Твой гардероб <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-color)] to-purple-500">
+                с искусственным интеллектом
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-lg leading-relaxed">
+              Забудь о проблеме «нечего надеть». Наше приложение анализирует твою одежду и создает стильные образы на каждый день за секунды.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+              <button className="btn btn-primary text-lg">
+                Начать бесплатно
+              </button>
+              <button className="btn bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                <div className="icon-circle-play w-5 h-5"></div>
+                Смотреть демо
+              </button>
+            </div>
+            
+            <div className="mt-12 flex items-center gap-4 text-sm text-gray-500">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=64&h=64" alt="User" />
+                </div>
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-300 overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=64&h=64" alt="User" />
+                </div>
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-400 overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=64&h=64" alt="User" />
+                </div>
+              </div>
+              <p>Уже используют более 10,000 модниц</p>
+            </div>
+          </div>
+
+          <div className="w-full md:w-1/2 relative">
+            <div className="relative z-10 bg-[var(--bg-surface)] rounded-3xl overflow-hidden shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
+              <img 
+                src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop" 
+                alt="Wardrobe Showcase" 
+                className="w-full h-[500px] object-cover"
+              />
+              
+              {/* Floating Element 1 */}
+              <div className="absolute top-8 right-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg max-w-[180px] animate-pulse">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <div className="icon-check text-green-600 w-4 h-4"></div>
+                  </div>
+                  <span className="text-sm font-bold">Образ готов!</span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500 w-full"></div>
+                </div>
+              </div>
+
+              {/* Floating Element 2 */}
+              <div className="absolute bottom-8 left-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-[var(--primary-color)] flex items-center justify-center text-white">
+                  <div className="icon-wand-sparkles w-6 h-6"></div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">AI Assistant</p>
+                  <p className="font-medium text-sm">Подбираю аксессуары...</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Background Blob */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-pink-100/50 rounded-full blur-3xl -z-10"></div>
+          </div>
+          
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default Hero;

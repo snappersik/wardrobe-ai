@@ -1,3 +1,11 @@
-from app.api import users, clothes, outfits, feedback
+from fastapi import APIRouter
+from .users import router as users_router
+from .clothing import router as clothing_router
+from .outfits import router as outfits_router
 
-__all__ = ["users", "clothes", "outfits", "feedback"]
+# Главный роутер, объединяющий все
+api_router = APIRouter()
+
+api_router.include_router(users_router)
+api_router.include_router(clothing_router)
+api_router.include_router(outfits_router)

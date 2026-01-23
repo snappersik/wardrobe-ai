@@ -1,157 +1,268 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.models.models import Outfit, OutfitItem, Clothing, User
-from app.schemas.schemas import OutfitCreate, OutfitResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 from typing import List
-import random
 
-router = APIRouter(prefix="/api/outfits", tags=["outfits"])
+from app.db.database import get_db
+from app.models import models
+from app.schemas import schemas
+from app.services import services
+
+router = APIRouter(prefix="/outfits", tags=["Outfits"])
 
 
-# ========== GET ENDPOINTS ==========
+@router.post("/create", response_model=schemas.OutfitDetailResponse)
+async def create_outfit(
+    outfit_data: schemas.OutfitCreate,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Создать образ вручную (выбрав вещи из гардероба)"""
+    
+    # Проверяем, что все вещи существуют и принадлежат пользователю
+    result = await db.execute(
+        select(models.ClothingItem).filter(
+            models.ClothingItem.id.in_(outfit_data.item_ids),
+            models.ClothingItem.owner_id == current_user.id
+        )
+    )
+    items = result.scalars().all()
+    
+    if len(items) != len(outfit_data.item_ids):
+        raise HTTPException(
+            status_code=400, 
+            detail="Some items not found or don't belong to you"
+        )
+    
+    # Создаем образ
+    new_outfit = models.Outfit(
+        owner_id=current_user.id,
+        name=outfit_data.name,
+        target_season=outfit_data.target_season,
+        target_weather=outfit_data.target_weather,
+        created_by_ai=False  # Пользователь создал вручную
+    )
+    
+    db.add(new_outfit)
+    await db.commit()
+    await db.refresh(new_outfit)
+    
+    # Связываем вещи с образом
+    for item_id in outfit_data.item_ids:
+        outfit_item = models.OutfitItem(
+            outfit_id=new_outfit.id,
+            item_id=item_id
+        )
+        db.add(outfit_item)
+    
+    await db.commit()
+    
+    # Логируем
+    log = models.AuditLog(
+        user_id=current_user.id, 
+        action="create_outfit", 
+        details=f"Created outfit: {outfit_data.name or 'Unnamed'}"
+    )
+    db.add(log)
+    await db.commit()
+    
+    # Возвращаем образ со списком вещей
+    await db.refresh(new_outfit)
+    return {
+        **new_outfit.__dict__,
+        "items": items
+    }
 
-@router.get("/user/{user_id}", response_model=List[OutfitResponse])
-async def get_user_outfits(user_id: int, db: Session = Depends(get_db)):
-    """Получить все образы пользователя"""
-    outfits = db.query(Outfit).filter(Outfit.user_id == user_id).all()
-    if not outfits:
-        raise HTTPException(status_code=404, detail="No outfits found")
+
+@router.get("/my-outfits", response_model=List[schemas.OutfitResponse])
+async def get_my_outfits(
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить все образы пользователя (краткий список)"""
+    result = await db.execute(
+        select(models.Outfit).filter(models.Outfit.owner_id == current_user.id)
+    )
+    outfits = result.scalars().all()
     return outfits
 
 
-@router.get("/{outfit_id}", response_model=OutfitResponse)
-async def get_outfit(outfit_id: int, db: Session = Depends(get_db)):
-    """Получить образ по ID"""
-    outfit = db.query(Outfit).filter(Outfit.id == outfit_id).first()
-    if not outfit:
-        raise HTTPException(status_code=404, detail="Outfit not found")
-    return outfit
-
-
-# ========== POST ENDPOINTS ==========
-
-@router.post("/generate", response_model=OutfitResponse)
-async def generate_outfit(
-        user_id: int,
-        weather_condition: str = None,
-        temperature: float = None,
-        db: Session = Depends(get_db)
+@router.get("/{outfit_id}", response_model=schemas.OutfitDetailResponse)
+async def get_outfit_detail(
+    outfit_id: int,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Генерировать случайный образ из одежды пользователя"""
-
-    # Проверяем пользователя
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Получаем одежду пользователя по типам
-    tops = db.query(Clothing).filter(
-        Clothing.user_id == user_id,
-        Clothing.clothing_type.in_(["top", "shirt", "tshirt"])
-    ).all()
-
-    bottoms = db.query(Clothing).filter(
-        Clothing.user_id == user_id,
-        Clothing.clothing_type.in_(["pants", "skirt", "shorts"])
-    ).all()
-
-    shoes = db.query(Clothing).filter(
-        Clothing.user_id == user_id,
-        Clothing.clothing_type == "shoes"
-    ).all()
-
-    # Проверяем что у пользователя есть одежда
-    if not tops or not bottoms or not shoes:
-        raise HTTPException(
-            status_code=400,
-            detail="Not enough clothes to generate outfit. Upload at least: top, bottoms, shoes"
+    """Получить подробную информацию об образе (с вещами)"""
+    result = await db.execute(
+        select(models.Outfit).filter(
+            models.Outfit.id == outfit_id,
+            models.Outfit.owner_id == current_user.id
         )
-
-    # Случайная генерация
-    selected_top = random.choice(tops)
-    selected_bottom = random.choice(bottoms)
-    selected_shoes = random.choice(shoes)
-
-    # Создаём новый образ
-    outfit = Outfit(
-        user_id=user_id,
-        name=f"Outfit #{random.randint(1000, 9999)}",
-        weather_condition=weather_condition,
-        temperature=temperature
     )
-
-    db.add(outfit)
-    db.flush()  # Чтобы получить outfit.id
-
-    # Добавляем предметы в образ
-    outfit_items = [
-        OutfitItem(outfit_id=outfit.id, clothing_id=selected_top.id),
-        OutfitItem(outfit_id=outfit.id, clothing_id=selected_bottom.id),
-        OutfitItem(outfit_id=outfit.id, clothing_id=selected_shoes.id),
-    ]
-
-    db.add_all(outfit_items)
-    db.commit()
-    db.refresh(outfit)
-
-    return outfit
-
-
-@router.post("/", response_model=OutfitResponse)
-async def create_outfit(
-        user_id: int,
-        clothing_ids: List[int],
-        outfit_data: OutfitCreate,
-        db: Session = Depends(get_db)
-):
-    """Создать образ вручную из выбранной одежды"""
-
-    # Проверяем пользователя
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Проверяем что все вещи существуют и принадлежат пользователю
-    clothes = db.query(Clothing).filter(Clothing.id.in_(clothing_ids)).all()
-    if len(clothes) != len(clothing_ids):
-        raise HTTPException(status_code=400, detail="Some clothes not found")
-
-    for cloth in clothes:
-        if cloth.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Clothing does not belong to user")
-
-    # Создаём образ
-    outfit = Outfit(
-        user_id=user_id,
-        name=outfit_data.name,
-        weather_condition=outfit_data.weather_condition,
-        temperature=outfit_data.temperature
-    )
-
-    db.add(outfit)
-    db.flush()
-
-    # Добавляем предметы
-    outfit_items = [
-        OutfitItem(outfit_id=outfit.id, clothing_id=cloth_id)
-        for cloth_id in clothing_ids
-    ]
-    db.add_all(outfit_items)
-    db.commit()
-    db.refresh(outfit)
-
-    return outfit
-
-
-# ========== DELETE ENDPOINTS ==========
-
-@router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_outfit(outfit_id: int, db: Session = Depends(get_db)):
-    """Удалить образ"""
-    outfit = db.query(Outfit).filter(Outfit.id == outfit_id).first()
+    outfit = result.scalar_one_or_none()
+    
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
+    
+    # Получаем вещи этого образа
+    result = await db.execute(
+        select(models.ClothingItem)
+        .join(models.OutfitItem)
+        .filter(models.OutfitItem.outfit_id == outfit_id)
+    )
+    items = result.scalars().all()
+    
+    return {
+        **outfit.__dict__,
+        "items": items
+    }
 
-    db.delete(outfit)
-    db.commit()
+
+@router.patch("/{outfit_id}", response_model=schemas.OutfitResponse)
+async def update_outfit(
+    outfit_id: int,
+    outfit_update: schemas.OutfitUpdate,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Обновить информацию об образе (название, сезон, избранное)"""
+    result = await db.execute(
+        select(models.Outfit).filter(
+            models.Outfit.id == outfit_id,
+            models.Outfit.owner_id == current_user.id
+        )
+    )
+    outfit = result.scalar_one_or_none()
+    
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Outfit not found")
+    
+    # Обновляем только переданные поля
+    update_data = outfit_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(outfit, key, value)
+    
+    await db.commit()
+    await db.refresh(outfit)
+    return outfit
+
+
+@router.post("/{outfit_id}/add-items", response_model=schemas.OutfitDetailResponse)
+async def add_items_to_outfit(
+    outfit_id: int,
+    items_data: schemas.OutfitAddItems,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Добавить вещи в существующий образ"""
+    # Проверяем образ
+    result = await db.execute(
+        select(models.Outfit).filter(
+            models.Outfit.id == outfit_id,
+            models.Outfit.owner_id == current_user.id
+        )
+    )
+    outfit = result.scalar_one_or_none()
+    
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Outfit not found")
+    
+    # Проверяем вещи
+    result = await db.execute(
+        select(models.ClothingItem).filter(
+            models.ClothingItem.id.in_(items_data.item_ids),
+            models.ClothingItem.owner_id == current_user.id
+        )
+    )
+    items = result.scalars().all()
+    
+    if len(items) != len(items_data.item_ids):
+        raise HTTPException(status_code=400, detail="Some items not found")
+    
+    # Добавляем связи (игнорируем дубликаты)
+    for item_id in items_data.item_ids:
+        # Проверяем, нет ли уже такой связи
+        result = await db.execute(
+            select(models.OutfitItem).filter(
+                models.OutfitItem.outfit_id == outfit_id,
+                models.OutfitItem.item_id == item_id
+            )
+        )
+        if not result.scalar_one_or_none():
+            outfit_item = models.OutfitItem(outfit_id=outfit_id, item_id=item_id)
+            db.add(outfit_item)
+    
+    await db.commit()
+    
+    # Возвращаем обновленный образ
+    result = await db.execute(
+        select(models.ClothingItem)
+        .join(models.OutfitItem)
+        .filter(models.OutfitItem.outfit_id == outfit_id)
+    )
+    all_items = result.scalars().all()
+    
+    return {
+        **outfit.__dict__,
+        "items": all_items
+    }
+
+
+@router.delete("/{outfit_id}/remove-item/{item_id}")
+async def remove_item_from_outfit(
+    outfit_id: int,
+    item_id: int,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удалить вещь из образа"""
+    # Проверяем образ
+    result = await db.execute(
+        select(models.Outfit).filter(
+            models.Outfit.id == outfit_id,
+            models.Outfit.owner_id == current_user.id
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Outfit not found")
+    
+    # Удаляем связь
+    await db.execute(
+        delete(models.OutfitItem).filter(
+            models.OutfitItem.outfit_id == outfit_id,
+            models.OutfitItem.item_id == item_id
+        )
+    )
+    await db.commit()
+    
+    return {"message": "Item removed from outfit"}
+
+
+@router.delete("/{outfit_id}")
+async def delete_outfit(
+    outfit_id: int,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удалить образ полностью"""
+    result = await db.execute(
+        select(models.Outfit).filter(
+            models.Outfit.id == outfit_id,
+            models.Outfit.owner_id == current_user.id
+        )
+    )
+    outfit = result.scalar_one_or_none()
+    
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Outfit not found")
+    
+    # Удаляем связи (каскадно удалятся автоматически, но можно явно)
+    await db.execute(
+        delete(models.OutfitItem).filter(models.OutfitItem.outfit_id == outfit_id)
+    )
+    
+    await db.delete(outfit)
+    await db.commit()
+    
+    return {"message": "Outfit deleted"}

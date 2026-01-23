@@ -1,123 +1,116 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, or_
+from datetime import timedelta
+
 from app.db.database import get_db
-from app.models.models import User
-from app.schemas.schemas import UserCreate, UserResponse
-from passlib.context import CryptContext
+from app.models import models
+from app.schemas import schemas
+from app.services import services
 
-router = APIRouter(prefix="/api/users", tags=["users"])
-
-
-# Для хеширования паролей (позже добавим passlib)
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# ========== GET ENDPOINTS ==========
-
-@router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    """Получить пользователя по ID"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/username/{username}", response_model=UserResponse)
-async def get_user_by_username(username: str, db: Session = Depends(get_db)):
-    """Получить пользователя по username"""
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-# ========== POST ENDPOINTS ==========
-
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Регистрация нового пользователя"""
-
-    # Проверяем что username не занят
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
-
-    # Проверяем что email не занят
-    existing_email = db.query(User).filter(User.email == user_data.email).first()
-    if existing_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    # Создаём нового пользователя
-    # Пока без хеширования пароля (потом добавим)
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        password_hash=user_data.password,  # TODO: хешировать пароль
-        city=user_data.city
+@router.post("/register", response_model=schemas.UserResponse)
+async def register(
+    user: schemas.UserCreate, 
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """Регистрация нового пользователя с автоматической авторизацией"""
+    
+    # Проверка существующего username или email
+    result = await db.execute(
+        select(models.User).filter(
+            or_(models.User.username == user.username, models.User.email == user.email)
+        )
     )
-
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=400, 
+            detail="Username or email already registered"
+        )
+    
+    # Создаем пользователя
+    hashed_password = services.get_password_hash(user.password)
+    new_user = models.User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        full_name=user.full_name,
+        city=user.city
+    )
+    
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
+    await db.commit()
+    await db.refresh(new_user)
+    
+    # Логируем регистрацию
+    log = models.AuditLog(
+        user_id=new_user.id, 
+        action="register", 
+        details=f"New user: {user.username}"
+    )
+    db.add(log)
+    await db.commit()
+    
+    # ✅ Автоматически авторизуем (устанавливаем cookie)
+    access_token = services.create_access_token(
+        data={"sub": new_user.username},
+        expires_delta=timedelta(minutes=services.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    services.set_auth_cookie(response, access_token)
+    
     return new_user
 
 
-@router.post("/login")
-async def login_user(username: str, password: str, db: Session = Depends(get_db)):
-    """Логин пользователя"""
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-
-    # TODO: проверить пароль через хеш
-    if user.password_hash != password:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-
-    return {
-        "user_id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "city": user.city,
-        "message": "Login successful"
-    }
-
-
-# ========== PUT ENDPOINTS ==========
-
-@router.put("/{user_id}", response_model=UserResponse)
-async def update_user(
-        user_id: int,
-        username: str = None,
-        email: str = None,
-        city: str = None,
-        db: Session = Depends(get_db)
+@router.post("/login", response_model=schemas.UserResponse)
+async def login(
+    credentials: schemas.UserLogin,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
 ):
-    """Обновить профиль пользователя"""
-    user = db.query(User).filter(User.id == user_id).first()
+    """Вход по username или email"""
+    
+    user = await services.authenticate_user(
+        db, 
+        credentials.username_or_email, 
+        credentials.password
+    )
+    
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if username:
-        user.username = username
-    if email:
-        user.email = email
-    if city:
-        user.city = city
-
-    db.commit()
-    db.refresh(user)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username/email or password"
+        )
+    
+    # Логируем вход
+    log = models.AuditLog(
+        user_id=user.id, 
+        action="login", 
+        details=f"Login: {user.username}"
+    )
+    db.add(log)
+    await db.commit()
+    
+    # ✅ Устанавливаем cookie
+    access_token = services.create_access_token(
+        data={"sub": user.username},
+        expires_delta=timedelta(minutes=services.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    services.set_auth_cookie(response, access_token)
+    
     return user
 
 
-# ========== DELETE ENDPOINTS ==========
+@router.post("/logout")
+async def logout(response: Response):
+    """Выход из системы (удаление cookie)"""
+    services.remove_auth_cookie(response)
+    return {"message": "Successfully logged out"}
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
-    """Удалить пользователя"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
-    db.delete(user)
-    db.commit()
+@router.get("/me", response_model=schemas.UserResponse)
+async def get_me(current_user: models.User = Depends(services.get_current_user)):
+    """Информация о текущем пользователе"""
+    return current_user

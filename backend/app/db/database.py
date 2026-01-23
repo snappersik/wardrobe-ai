@@ -1,29 +1,42 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import StaticPool
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Для разработки используем SQLite (легче чем PostgreSQL)
-# Позже можем переключиться на PostgreSQL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./wardrobe.db"
-
-# Для SQLite нужны эти параметры
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+from sqlalchemy.ext.asyncio import (
+    AsyncSession, 
+    async_sessionmaker, 
+    create_async_engine
 )
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from sqlalchemy.ext.declarative import declarative_base
+from typing import AsyncGenerator
+from pydantic_settings import BaseSettings
 
 Base = declarative_base()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+class Settings(BaseSettings):
+    """Настройки базы данных из .env"""
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:4242/wardrobe_ai"
+    
+    class Config:
+        env_file = "../../.env"  # Относительно backend/app/db/
+
+# Создаем engine
+settings = Settings()
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+engine = create_async_engine(
+    settings.DATABASE_URL,  # теперь с +asyncpg
+    echo=True
+)
+
+# Фабрика сессий
+async_session_maker = async_sessionmaker(
+    engine, 
+    class_=AsyncSession, 
+    expire_on_commit=False
+)
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Зависимость для FastAPI — дает сессию БД в эндпоинты"""
+    async with async_session_maker() as session:
+        yield session
+
+# Функция для создания таблиц (используется в main.py)
+async def create_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
