@@ -4,10 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './styles/index.css'
 
+import { AuthProvider } from './context/AuthContext'
+
 createRoot(document.getElementById('root')).render(
     <StrictMode>
         <BrowserRouter>
-            <App />
+            <AuthProvider>
+                <div style={{ minHeight: '100vh' }}>
+                    <App />
+                </div>
+            </AuthProvider>
         </BrowserRouter>
     </StrictMode>
 )

@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'
+import Icon from '../common/Icon'
 
 export default function Hero() {
     return (
@@ -24,7 +25,7 @@ export default function Hero() {
                                 Начать бесплатно
                             </Link>
                             <button className="btn bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 flex items-center gap-2">
-                                <div className="icon-circle-play text-xl"></div>
+                                <Icon name="circle-play" className="text-xl" size={24} />
                                 Смотреть демо
                             </button>
                         </div>
@@ -62,7 +63,7 @@ export default function Hero() {
                             >
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                                        <div className="icon-check text-green-600 w-4 h-4"></div>
+                                        <Icon name="check" className="text-green-600" size={16} />
                                     </div>
                                     <span className="text-sm font-bold">Образ готов!</span>
                                 </div>
@@ -80,7 +81,7 @@ export default function Hero() {
                                 }}
                             >
                                 <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center text-white">
-                                    <div className="icon-wand-sparkles w-6 h-6"></div>
+                                    <Icon name="wand-sparkles" size={24} />
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">AI Assistant</p>

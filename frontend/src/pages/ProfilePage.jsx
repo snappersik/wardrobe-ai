@@ -1,26 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 import Toast from '../components/common/Toast'
+import { useAuth } from '../context/AuthContext'
+import Icon from '../components/common/Icon'
+import cities from '../data/russian-cities.json'
 
 export default function ProfilePage() {
+    const { user, logout } = useAuth()
     const [toast, setToast] = useState(null)
     const [loading, setLoading] = useState(false)
+    const fileInputRef = useRef(null)
     const [formData, setFormData] = useState({
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        phone: '+7 999 123-45-67',
-        city: 'Москва',
+        name: '',
+        email: '',
+        phone: '',
+        city: '',
         style: 'casual',
         notifications: true
     })
 
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: false
-    }
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                name: user.full_name || user.username || '',
+                email: user.email || '',
+                city: user.city || 'Москва',
+            }))
+        }
+    }, [user])
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type })
@@ -33,6 +42,26 @@ export default function ProfilePage() {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }))
+    }
+
+    const handleCityBlur = (e) => {
+        const { value } = e.target
+        if (value && !cities.find(c => c.name === value)) {
+            showToast('Пожалуйста, выберите город из списка', 'error')
+            setFormData(prev => ({ ...prev, city: '' }))
+        }
+    }
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            const objectUrl = URL.createObjectURL(file)
+            setFormData(prev => ({ ...prev, avatarPreview: objectUrl }))
+            showToast('Фото выбрано', 'success')
+
+            // Clean up memory
+            return () => URL.revokeObjectURL(objectUrl)
+        }
     }
 
     const handleSubmit = (e) => {
@@ -53,19 +82,30 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-6 mb-8">
                         <div className="relative">
                             <img
-                                src={user.avatar}
-                                alt={user.name}
+                                src={formData.avatarPreview || user?.avatar || 'https://ui-avatars.com/api/?name=' + (user?.full_name || user?.username || 'User')}
+                                alt={user?.name}
                                 className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                             />
-                            <button className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-colors">
-                                <div className="icon-camera"></div>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-colors flex items-center justify-center"
+                            >
+                                <Icon name="camera" size={16} />
                             </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-                            <p className="text-gray-500">{user.email}</p>
+                            <h1 className="text-2xl font-bold text-gray-900">{user?.full_name || user?.username}</h1>
+                            <p className="text-gray-500">{user?.email}</p>
+                            {/* Dummy badge for now */}
                             <span className="inline-block mt-2 px-3 py-1 bg-pink-100 text-primary rounded-full text-sm font-medium">
-                                Premium Plan
+                                Free Plan
                             </span>
                         </div>
                     </div>
@@ -107,10 +147,18 @@ export default function ProfilePage() {
                                 <input
                                     type="text"
                                     name="city"
+                                    list="city-list"
                                     value={formData.city}
                                     onChange={handleChange}
+                                    onBlur={handleCityBlur}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                    placeholder="Начните вводить название..."
                                 />
+                                <datalist id="city-list">
+                                    {cities.map((city, index) => (
+                                        <option key={`${city.name}-${index}`} value={city.name} />
+                                    ))}
+                                </datalist>
                             </div>
                         </div>
 
@@ -141,7 +189,7 @@ export default function ProfilePage() {
 
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <h3 className="font-bold text-gray-900 mb-4">Настройки</h3>
-                    <button className="text-red-600 font-medium hover:underline">Удалить аккаунт</button>
+                    <button onClick={logout} className="text-red-600 font-medium hover:underline">Выйти из аккаунта</button>
                 </div>
             </main>
 

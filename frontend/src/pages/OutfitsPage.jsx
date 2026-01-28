@@ -3,31 +3,42 @@ import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 import FAB from '../components/wardrobe/FAB'
 
+import api from '../api/axios'
+import { useAuth } from '../context/AuthContext'
+
 export default function OutfitsPage() {
+    const { user } = useAuth()
     const [outfits, setOutfits] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeOccasion, setActiveOccasion] = useState('Все')
 
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: false
-    }
-
     const occasions = ['Все', 'Повседневный', 'Офис', 'Вечеринка', 'Спорт', 'Свидание']
 
     useEffect(() => {
-        setTimeout(() => {
-            setOutfits([
-                { id: 1, name: 'Деловой образ', occasion: 'Офис', items: 3, image: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=400&q=80', date: '2023-10-01' },
-                { id: 2, name: 'Выходной день', occasion: 'Повседневный', items: 4, image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80', date: '2023-10-03' },
-                { id: 3, name: 'Вечерний лук', occasion: 'Вечеринка', items: 5, image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=400&q=80', date: '2023-10-05' },
-                { id: 4, name: 'Спортивный стиль', occasion: 'Спорт', items: 3, image: 'https://images.unsplash.com/photo-1518459031867-a89b944bffe4?auto=format&fit=crop&w=400&q=80', date: '2023-10-07' },
-            ])
-            setLoading(false)
-        }, 1500)
+        fetchOutfits()
     }, [])
+
+    const fetchOutfits = async () => {
+        try {
+            setLoading(true)
+            const { data } = await api.get('/outfits/my-outfits')
+            // Map backend data to UI format
+            // Backend: { id, name, target_season, ... } -> UI needs image, items count
+            const mappedOutfits = data.map(outfit => ({
+                id: outfit.id,
+                name: outfit.name || 'Без названия',
+                occasion: outfit.target_season || 'Повседневный', // Fallback mapping since backend is limited
+                items: outfit.items ? outfit.items.length : '?', // Backend list endpoint doesn't return count yet
+                image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=300', // Placeholder for now
+                date: new Date(outfit.created_at).toLocaleDateString()
+            }))
+            setOutfits(mappedOutfits)
+        } catch (error) {
+            console.error('Failed to fetch outfits', error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const filteredOutfits = outfits.filter(outfit =>
         activeOccasion === 'Все' || outfit.occasion === activeOccasion

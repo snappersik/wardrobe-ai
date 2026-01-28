@@ -8,12 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 
 from ..models.models import User
-from ..db.database import get_db
+from ..db.database import get_db, settings
 
 # Настройки для JWT
-SECRET_KEY = "your-super-secret-key-change-this-in-production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 дней для cookie
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 COOKIE_NAME = "wardrobe_access_token"
 
 # Хеширование паролей

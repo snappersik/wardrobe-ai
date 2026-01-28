@@ -11,10 +11,16 @@ Base = declarative_base()
 
 class Settings(BaseSettings):
     """Настройки базы данных из .env"""
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:4242/wardrobe_ai"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:4242/wardrobe_ai"
+    SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    DEBUG: bool = True
+    UPLOADS_PATH: str = "./uploads"
+    OPENWEATHER_API_KEY: str = "your_openweather_key"
     
     class Config:
-        env_file = "../../.env"  # Относительно backend/app/db/
+        env_file = ".env"
 
 # Создаем engine
 settings = Settings()

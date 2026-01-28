@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import Icon from '../components/common/Icon'
 import LoginBranding from '../components/auth/LoginBranding'
 import Toast from '../components/common/Toast'
 
 export default function RegisterPage() {
     const navigate = useNavigate()
+    const { register } = useAuth()
     const [toast, setToast] = useState(null)
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
@@ -52,16 +55,28 @@ export default function RegisterPage() {
         }
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         if (!validateStep2()) return
 
         setLoading(true)
-        setTimeout(() => {
-            setLoading(false)
+        try {
+            await register({
+                username: formData.email.split('@')[0] + Math.floor(Math.random() * 10000),
+                email: formData.email,
+                password: formData.password,
+                full_name: formData.name
+            })
             showToast('Регистрация успешна!')
             setTimeout(() => navigate('/wardrobe'), 1000)
-        }, 1500)
+        } catch (error) {
+            console.error(error)
+            // Handle detail error if possible
+            const msg = error.response?.data?.detail || 'Ошибка регистрации'
+            showToast(msg, 'error')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -71,7 +86,7 @@ export default function RegisterPage() {
                 to="/"
                 className="absolute top-6 left-6 p-2 rounded-xl bg-white shadow-md hover:shadow-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
-                <div className="icon-arrow-left text-lg"></div>
+                <Icon name="arrow-left" size={20} />
                 <span className="text-sm font-medium hidden sm:inline">На главную</span>
             </Link>
 

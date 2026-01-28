@@ -1,3 +1,5 @@
+import Icon from '../common/Icon'
+
 export default function Features() {
     const features = [
         {
@@ -32,7 +34,7 @@ export default function Features() {
                             className="bg-surface p-8 rounded-3xl hover:shadow-xl transition-shadow duration-300 group"
                         >
                             <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                <div className={`icon-${feature.icon} text-primary text-2xl`}></div>
+                                <Icon name={feature.icon} className="text-primary" size={24} />
                             </div>
                             <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
                             <p className="text-gray-600 leading-relaxed">

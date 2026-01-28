@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import LoginBranding from '../components/auth/LoginBranding'
 import LoginForm from '../components/auth/LoginForm'
 import Toast from '../components/common/Toast'
+import Icon from '../components/common/Icon'
 
 export default function LoginPage() {
     const [toast, setToast] = useState(null)
@@ -19,7 +20,7 @@ export default function LoginPage() {
                 to="/"
                 className="absolute top-6 left-6 p-2 rounded-xl bg-white shadow-md hover:shadow-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
-                <div className="icon-arrow-left text-lg"></div>
+                <Icon name="arrow-left" size={20} />
                 <span className="text-sm font-medium hidden sm:inline">На главную</span>
             </Link>
 

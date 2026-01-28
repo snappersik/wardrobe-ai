@@ -5,46 +5,55 @@ import WardrobeHeader from '../components/wardrobe/WardrobeHeader'
 import CategoryFilter from '../components/wardrobe/CategoryFilter'
 import WardrobeGrid from '../components/wardrobe/WardrobeGrid'
 import FAB from '../components/wardrobe/FAB'
+import UploadModal from '../components/wardrobe/UploadModal'
+import api from '../api/axios'
+import { useAuth } from '../context/AuthContext'
 
 export default function WardrobePage() {
+    const { user } = useAuth()
     const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
     const [activeCategory, setActiveCategory] = useState('Все')
     const [searchQuery, setSearchQuery] = useState('')
     const [sortOption, setSortOption] = useState('newest')
 
-    // Mock User
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: false
-    }
-
-    // Simulate data fetching
+    // Data fetching
     useEffect(() => {
-        setTimeout(() => {
-            setItems([
-                { id: 1, name: 'Бежевый тренч', category: 'Верхняя одежда', image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80', date: '2023-10-01' },
-                { id: 2, name: 'Белая футболка', category: 'Верх', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80', date: '2023-10-05' },
-                { id: 3, name: 'Джинсы Mom', category: 'Низ', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=400&q=80', date: '2023-09-15' },
-                { id: 4, name: 'Кеды Converse', category: 'Обувь', image: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=400&q=80', date: '2023-10-10' },
-                { id: 5, name: 'Черная сумка', category: 'Аксессуары', image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=400&q=80', date: '2023-08-20' },
-                { id: 6, name: 'Шелковый платок', category: 'Аксессуары', image: 'https://images.unsplash.com/photo-1585218356057-1df245b73676?auto=format&fit=crop&w=400&q=80', date: '2023-09-01' },
-            ])
-            setLoading(false)
-        }, 1500)
+        fetchItems()
     }, [])
+    const fetchItems = async () => {
+        try {
+            setLoading(true)
+            const { data } = await api.get('/clothing')
+            setItems(data)
+        } catch (error) {
+            console.error('Failed to fetch items', error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const filteredItems = items.filter(item => {
         const matchesCategory = activeCategory === 'Все' || item.category === activeCategory
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
         return matchesCategory && matchesSearch
+    }).sort((a, b) => {
+        if (sortOption === 'newest') return new Date(b.created_at) - new Date(a.created_at)
+        if (sortOption === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
+        return 0
     })
-
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
+        // ... (same)
         if (confirm('Вы уверены, что хотите удалить эту вещь?')) {
-            setItems(prev => prev.filter(item => item.id !== id))
+            try {
+                await api.delete(`/clothing/${id}`)
+                setItems(prev => prev.filter(item => item.id !== id))
+            } catch (error) {
+                console.error('Failed to delete item', error)
+                alert('Не удалось удалить вещь')
+            }
         }
     }
 
@@ -59,6 +68,7 @@ export default function WardrobePage() {
                     sortOption={sortOption}
                     setSortOption={setSortOption}
                     itemCount={filteredItems.length}
+                    onUploadClick={() => setIsUploadModalOpen(true)}
                 />
 
                 <CategoryFilter
@@ -75,6 +85,14 @@ export default function WardrobePage() {
 
             <FAB />
             <MobileNav activePage="wardrobe" />
+
+            <UploadModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                onUploadSuccess={() => {
+                    fetchItems()
+                }}
+            />
         </div>
     )
 }

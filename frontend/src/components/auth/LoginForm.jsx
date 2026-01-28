@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import InputGroup from './InputGroup'
 import SocialLogin from './SocialLogin'
+import Icon from '../common/Icon'
+import { useAuth } from '../../context/AuthContext'
 
 export default function LoginForm({ showToast }) {
     const navigate = useNavigate()
+    const { login } = useAuth()
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [formData, setFormData] = useState({
@@ -34,23 +37,23 @@ export default function LoginForm({ showToast }) {
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         if (!validate()) return
 
         setLoading(true)
-        // Simulate API login
-        setTimeout(() => {
+        try {
+            await login(formData.email, formData.password)
+            showToast('Успешный вход!')
+            setTimeout(() => {
+                navigate('/wardrobe')
+            }, 1000)
+        } catch (error) {
+            console.error(error)
+            showToast('Неверный логин или пароль', 'error')
+        } finally {
             setLoading(false)
-            if (formData.email === 'error@example.com') {
-                showToast('Неверный логин или пароль', 'error')
-            } else {
-                showToast('Успешный вход!')
-                setTimeout(() => {
-                    navigate('/wardrobe')
-                }, 1000)
-            }
-        }, 1500)
+        }
     }
 
     return (
@@ -90,7 +93,7 @@ export default function LoginForm({ showToast }) {
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-4 top-[38px] text-gray-400 hover:text-gray-600"
                         >
-                            <div className={`icon-${showPassword ? 'eye-off' : 'eye'} w-5 h-5`}></div>
+                            <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} />
                         </button>
                     </div>
                 </div>
