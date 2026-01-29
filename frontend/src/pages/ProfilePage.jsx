@@ -1,3 +1,4 @@
+// Страница профиля - редактирование данных пользователя
 import { useState, useEffect, useRef } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
@@ -20,6 +21,7 @@ export default function ProfilePage() {
         notifications: true
     })
 
+    // Заполняем форму данными пользователя при загрузке
     useEffect(() => {
         if (user) {
             setFormData(prev => ({
@@ -44,6 +46,7 @@ export default function ProfilePage() {
         }))
     }
 
+    // Проверка города из списка
     const handleCityBlur = (e) => {
         const { value } = e.target
         if (value && !cities.find(c => c.name === value)) {
@@ -52,18 +55,18 @@ export default function ProfilePage() {
         }
     }
 
+    // Загрузка аватара
     const handleFileChange = (e) => {
         const file = e.target.files[0]
         if (file) {
             const objectUrl = URL.createObjectURL(file)
             setFormData(prev => ({ ...prev, avatarPreview: objectUrl }))
             showToast('Фото выбрано', 'success')
-
-            // Clean up memory
             return () => URL.revokeObjectURL(objectUrl)
         }
     }
 
+    // Сохранение профиля (заглушка)
     const handleSubmit = (e) => {
         e.preventDefault()
         setLoading(true)
@@ -103,7 +106,6 @@ export default function ProfilePage() {
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">{user?.full_name || user?.username}</h1>
                             <p className="text-gray-500">{user?.email}</p>
-                            {/* Dummy badge for now */}
                             <span className="inline-block mt-2 px-3 py-1 bg-pink-100 text-primary rounded-full text-sm font-medium">
                                 Free Plan
                             </span>

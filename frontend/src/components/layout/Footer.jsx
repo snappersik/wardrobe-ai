@@ -1,3 +1,4 @@
+// Подвал сайта с логотипом, ссылками и копирайтом
 import { Link } from 'react-router-dom'
 
 export default function Footer() {
@@ -13,14 +14,12 @@ export default function Footer() {
                         </div>
                         <span className="font-bold text-xl">Умный Гардероб</span>
                     </div>
-
                     <div className="flex gap-8 text-gray-500 text-sm">
                         <Link to="#" className="hover:text-primary">О нас</Link>
                         <Link to="#" className="hover:text-primary">Конфиденциальность</Link>
                         <Link to="#" className="hover:text-primary">Условия</Link>
                         <Link to="#" className="hover:text-primary">Поддержка</Link>
                     </div>
-
                     <div className="text-gray-400 text-sm">
                         © {currentYear} Умный Гардероб. Все права защищены.
                     </div>

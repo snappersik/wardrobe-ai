@@ -1,3 +1,4 @@
+// Страница календаря - планирование образов на каждый день
 import { useState } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
@@ -17,6 +18,7 @@ export default function CalendarPage() {
         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
     const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
+    // Получить дни месяца для отображения в сетке
     const getDaysInMonth = (date) => {
         const year = date.getFullYear()
         const month = date.getMonth()
@@ -35,6 +37,7 @@ export default function CalendarPage() {
         return days
     }
 
+    // Демо-данные запланированных образов
     const plannedOutfits = {
         5: { name: 'Деловой образ', image: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=100&q=80' },
         12: { name: 'Выходной день', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=100&q=80' },
@@ -80,10 +83,10 @@ export default function CalendarPage() {
                                 key={idx}
                                 onClick={() => day && setSelectedDate(day)}
                                 className={`aspect-square p-1 rounded-lg cursor-pointer transition-all ${day === null ? '' :
-                                        day === today && isCurrentMonth ? 'bg-primary text-white' :
-                                            plannedOutfits[day] ? 'bg-pink-50 hover:bg-pink-100' :
-                                                selectedDate === day ? 'bg-gray-100' :
-                                                    'hover:bg-gray-50'
+                                    day === today && isCurrentMonth ? 'bg-primary text-white' :
+                                        plannedOutfits[day] ? 'bg-pink-50 hover:bg-pink-100' :
+                                            selectedDate === day ? 'bg-gray-100' :
+                                                'hover:bg-gray-50'
                                     }`}
                             >
                                 {day && (
@@ -101,6 +104,7 @@ export default function CalendarPage() {
                     </div>
                 </div>
 
+                {/* Детали выбранного образа */}
                 {selectedDate && plannedOutfits[selectedDate] && (
                     <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                         <h3 className="font-bold text-gray-900 mb-4">Запланированный образ на {selectedDate} число</h3>

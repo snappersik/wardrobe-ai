@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 3000,
+    strictPort: true, // Не переключаться на другой порт если 3000 занят
     open: true, // Автоматически открывает браузер
   },
 })

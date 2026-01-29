@@ -1,30 +1,44 @@
+// =============================================================================
+// КОМПОНЕНТ ИКОНОК (Icon.jsx)
+// =============================================================================
+// Универсальный компонент для отображения иконок.
+// Использует библиотеку Lucide React (https://lucide.dev).
+// Централизует все иконки в одном месте для удобства управления.
+// =============================================================================
+
+// Импорт иконок из библиотеки Lucide React
 import {
-    Search,
-    ArrowLeft,
-    Eye,
-    EyeOff,
-    Wand2, // WandSparkles mapping
-    PlayCircle,
-    Check,
-    Sparkles,
-    LayoutGrid,
-    Shirt,
-    Mail,
-    Lock,
-    SlidersHorizontal,
-    Plus,
-    Trash2,
-    X,
-    Upload,
-    Camera
+    Search,           // Поиск (лупа)
+    ArrowLeft,        // Стрелка назад
+    Eye,              // Глаз (показать пароль)
+    EyeOff,           // Глаз перечёркнутый (скрыть пароль)
+    Wand2,            // Волшебная палочка (AI генерация)
+    PlayCircle,       // Play кнопка
+    Check,            // Галочка
+    Sparkles,         // Искры (эффекты)
+    LayoutGrid,       // Сетка
+    Shirt,            // Рубашка (одежда)
+    Mail,             // Письмо (email)
+    Lock,             // Замок (пароль)
+    SlidersHorizontal, // Слайдеры (настройки)
+    Plus,             // Плюс (добавить)
+    Trash2,           // Корзина (удалить)
+    X,                // Крестик (закрыть)
+    Upload,           // Загрузка файла
+    Camera            // Камера
 } from 'lucide-react';
 
+// =============================================================================
+// МАППИНГ НАЗВАНИЙ ИКОНОК
+// =============================================================================
+// Объект для маппинга строковых названий на компоненты иконок.
+// Позволяет использовать иконки по имени: <Icon name="search" />
 const icons = {
     'search': Search,
     'arrow-left': ArrowLeft,
     'eye': Eye,
     'eye-off': EyeOff,
-    'wand-sparkles': Wand2, // Lucide doesn't have exact WandSparkles, Wand2 is close
+    'wand-sparkles': Wand2,      // В Lucide нет WandSparkles, используем Wand2
     'circle-play': PlayCircle,
     'check': Check,
     'sparkles': Sparkles,
@@ -40,15 +54,30 @@ const icons = {
     'camera': Camera
 };
 
+// =============================================================================
+// КОМПОНЕНТ ИКОНКИ
+// =============================================================================
+/**
+ * Универсальный компонент иконки.
+ * 
+ * @param {string} name - Название иконки (ключ из объекта icons)
+ * @param {string} className - CSS классы для кастомизации
+ * @param {number} size - Размер иконки в пикселях (по умолчанию 24)
+ * @returns {JSX.Element|null} - Компонент иконки или null если не найдена
+ * 
+ * @example
+ * <Icon name="search" size={20} className="text-gray-500" />
+ */
 export default function Icon({ name, className, size = 24 }) {
+    // Получаем компонент иконки по имени
     const LucideIcon = icons[name];
 
+    // Если иконка не найдена - предупреждаем в консоли
     if (!LucideIcon) {
         console.warn(`Icon "${name}" not found`);
         return null;
     }
 
-    // Extract size from className if possible or use prop
-    // Simple implementation: render directly
+    // Рендерим иконку с переданными параметрами
     return <LucideIcon className={className} size={size} />;
 }

@@ -1,22 +1,59 @@
-import UniversalHeader from '../components/layout/UniversalHeader'
-import Footer from '../components/layout/Footer'
-import Hero from '../components/landing/Hero'
-import Features from '../components/landing/Features'
-import HowItWorks from '../components/landing/HowItWorks'
-import Testimonials from '../components/landing/Testimonials'
-import CTA from '../components/landing/CTA'
+// =============================================================================
+// ГЛАВНАЯ СТРАНИЦА (HomePage.jsx)
+// =============================================================================
+// Лендинг (посадочная страница) приложения.
+// Показывается неавторизованным пользователям.
+// Содержит: Hero-секцию, возможности, как это работает, отзывы и CTA.
+// =============================================================================
 
+// Компоненты layout
+import UniversalHeader from '../components/layout/UniversalHeader'  // Шапка сайта
+import Footer from '../components/layout/Footer'                    // Подвал сайта
+
+// Компоненты лендинга (секции)
+import Hero from '../components/landing/Hero'                // Главный баннер
+import Features from '../components/landing/Features'        // Секция "Возможности"
+import HowItWorks from '../components/landing/HowItWorks'    // Секция "Как это работает"
+import Testimonials from '../components/landing/Testimonials' // Секция "Отзывы"
+import CTA from '../components/landing/CTA'                  // Призыв к действию
+
+// =============================================================================
+// КОМПОНЕНТ СТРАНИЦЫ
+// =============================================================================
+/**
+ * Главная страница (лендинг).
+ * Состоит из нескольких секций, демонстрирующих возможности приложения.
+ */
 export default function HomePage() {
     return (
         <div className="min-h-screen flex flex-col">
+            {/* Шапка сайта (user=null - пользователь не авторизован) */}
             <UniversalHeader activePage="Главная" user={null} />
+
+            {/* ============================================================= */}
+            {/* ОСНОВНОЙ КОНТЕНТ */}
+            {/* ============================================================= */}
+            {/* -mt-[80px] - Hero-секция начинается под прозрачной шапкой */}
             <main className="flex-grow -mt-[80px]">
+
+                {/* Hero - главный баннер с заголовком и CTA */}
                 <Hero />
+
+                {/* Features - секция возможностей приложения */}
                 <Features />
+
+                {/* HowItWorks - пошаговое объяснение работы */}
                 <HowItWorks />
+
+                {/* Testimonials - отзывы пользователей */}
                 <Testimonials />
+
+                {/* CTA - финальный призыв к регистрации */}
                 <CTA />
+
             </main>
+
+            {/* Подвал сайта */}
             <Footer />
         </div>
     )

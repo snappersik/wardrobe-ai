@@ -1,13 +1,14 @@
+// AI генератор образов - выбор параметров и генерация outfit
 import { useState } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 
 export default function GeneratorPage() {
-    const [occasion, setOccasion] = useState('')
-    const [weather, setWeather] = useState('warm')
-    const [style, setStyle] = useState('casual')
+    const [occasion, setOccasion] = useState('')       // Выбранный повод
+    const [weather, setWeather] = useState('warm')    // Погода
+    const [style, setStyle] = useState('casual')      // Стиль
     const [generating, setGenerating] = useState(false)
-    const [result, setResult] = useState(null)
+    const [result, setResult] = useState(null)        // Результат генерации
 
     const user = {
         name: 'Анна Петрова',
@@ -24,6 +25,7 @@ export default function GeneratorPage() {
         { id: 'sport', label: 'Спорт', icon: 'dumbbell' },
     ]
 
+    // Имитация генерации образа (заглушка)
     const handleGenerate = () => {
         setGenerating(true)
         setTimeout(() => {
@@ -49,6 +51,7 @@ export default function GeneratorPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
+                    {/* Выбор повода */}
                     <div className="mb-8">
                         <h3 className="font-bold text-gray-900 mb-4">Куда вы собираетесь?</h3>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -68,6 +71,7 @@ export default function GeneratorPage() {
                         </div>
                     </div>
 
+                    {/* Выбор погоды */}
                     <div className="mb-8">
                         <h3 className="font-bold text-gray-900 mb-4">Погода</h3>
                         <div className="flex gap-3">
@@ -108,6 +112,7 @@ export default function GeneratorPage() {
                     </button>
                 </div>
 
+                {/* Результат генерации */}
                 {result && (
                     <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
                         <h3 className="font-bold text-gray-900 mb-6 text-center">Ваш образ готов!</h3>

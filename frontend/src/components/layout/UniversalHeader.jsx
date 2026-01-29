@@ -1,13 +1,15 @@
+// Универсальный хедер - адаптируется под авторизованного/неавторизованного/админа
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
-export default function UniversalHeader({ activePage }) { // Remove 'user' prop as we get it from context
+export default function UniversalHeader({ activePage }) {
     const { user, logout } = useAuth()
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const location = useLocation()
 
+    // Отслеживание скролла для изменения стиля хедера
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 20)
@@ -16,6 +18,7 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
+    // Управление мобильным меню
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen)
         document.body.style.overflow = !isMobileMenuOpen ? 'hidden' : 'unset'
@@ -26,18 +29,17 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
         document.body.style.overflow = 'unset'
     }
 
-    // Определяем роль пользователя
     const isAdmin = user?.role === 'admin'
     const isAuthenticated = !!user
 
-    // Навигация для неавторизованных пользователей
+    // Навигация для неавторизованных
     const navLinksUnauth = [
         { name: 'Возможности', href: '/#features' },
         { name: 'Как это работает', href: '/#how-it-works' },
         { name: 'Отзывы', href: '/#testimonials' },
     ]
 
-    // Навигация для авторизованных пользователей (не админов)
+    // Навигация для обычных пользователей
     const navLinksAuth = [
         { name: 'Гардероб', href: '/wardrobe' },
         { name: 'Образы', href: '/outfits' },
@@ -53,13 +55,12 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
         { name: 'Профиль', href: '/profile' },
     ]
 
-    // Выбираем нужные ссылки
     const links = isAdmin ? navLinksAdmin : (isAuthenticated ? navLinksAuth : navLinksUnauth)
 
+    // Проверка активной ссылки
     const isActive = (href) => {
         if (href.startsWith('/#')) return false
         if (href === '/') return location.pathname === '/'
-        // Для /admin проверяем точное совпадение, чтобы не подсвечивался при /admin/users
         if (href === '/admin') return location.pathname === '/admin'
         return location.pathname.startsWith(href)
     }
@@ -99,7 +100,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                         {/* Десктопная навигация */}
                         <nav className="hidden md:flex items-center gap-1">
                             {links.map((link) => {
-                                // Обработка якорных ссылок для плавного скролла
                                 const isAnchor = link.href.includes('#')
 
                                 const handleClick = (e) => {
@@ -124,7 +124,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                                             }`}
                                     >
                                         {link.name}
-                                        {/* Animated underline: dot expands to line on hover */}
                                         <span className={`absolute bottom-0 left-1/2 h-1 bg-primary rounded-full transition-all duration-300 ease-out ${isActive(link.href)
                                             ? 'w-1 -translate-x-1/2 group-hover:w-3/4'
                                             : 'w-0 -translate-x-1/2 group-hover:w-3/4'
@@ -136,7 +135,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
 
                         {/* Правая часть */}
                         <div className="flex items-center gap-3">
-                            {/* Незарегистрированный пользователь — кнопка Войти */}
                             {!isAuthenticated && (
                                 <Link
                                     to="/login"
@@ -146,7 +144,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                                 </Link>
                             )}
 
-                            {/* Авторизованный пользователь (не админ) — кнопка Создать */}
                             {isAuthenticated && !isAdmin && (
                                 <Link
                                     to="/generator"
@@ -159,7 +156,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                                 </Link>
                             )}
 
-                            {/* Админ — кнопка Админ панель */}
                             {isAdmin && (
                                 <Link
                                     to="/admin"
@@ -172,7 +168,7 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                                 </Link>
                             )}
 
-                            {/* Мобильное меню кнопка */}
+                            {/* Кнопка мобильного меню */}
                             <button
                                 className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                                 onClick={toggleMobileMenu}
@@ -186,7 +182,7 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                 </div>
             </header>
 
-            {/* Спейсер */}
+            {/* Спейсер под fixed header */}
             <div className={`transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20'}`} />
 
             {/* Мобильное меню */}
@@ -198,7 +194,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                     />
                     <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
 
-                        {/* Заголовок */}
                         <div className="p-4 flex items-center justify-between border-b border-gray-100">
                             <span className="font-bold text-xl">Меню</span>
                             <button
@@ -211,7 +206,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                             </button>
                         </div>
 
-                        {/* Профиль пользователя */}
                         {isAuthenticated && (
                             <div className={`p-6 flex items-center gap-4 ${isAdmin ? 'bg-gradient-to-br from-violet-50 to-purple-50' : 'bg-gradient-to-br from-pink-50 to-purple-50'}`}>
                                 <img
@@ -226,7 +220,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                             </div>
                         )}
 
-                        {/* Навигация */}
                         <div className="flex-1 overflow-y-auto py-4">
                             {isAuthenticated ? (
                                 <div className="space-y-1 px-3">
@@ -256,7 +249,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                                 </div>
                             )}
 
-                            {/* Кнопка создать для авторизованных (не админов) */}
                             {isAuthenticated && !isAdmin && (
                                 <div className="mt-6 px-3">
                                     <Link
@@ -273,7 +265,6 @@ export default function UniversalHeader({ activePage }) { // Remove 'user' prop 
                             )}
                         </div>
 
-                        {/* Футер меню */}
                         <div className="p-4 border-t border-gray-100 bg-gray-50">
                             {isAuthenticated ? (
                                 <button

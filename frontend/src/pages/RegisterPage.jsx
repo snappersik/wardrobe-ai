@@ -1,3 +1,4 @@
+// Страница регистрации - двухшаговая форма (имя+email -> пароль)
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -9,8 +10,10 @@ export default function RegisterPage() {
     const navigate = useNavigate()
     const { register } = useAuth()
     const [toast, setToast] = useState(null)
-    const [step, setStep] = useState(1)
+    const [step, setStep] = useState(1)           // Текущий шаг (1 или 2)
     const [loading, setLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)           // Показать пароль
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)  // Показать подтверждение
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -19,17 +22,20 @@ export default function RegisterPage() {
     })
     const [errors, setErrors] = useState({})
 
+    // Показать toast уведомление
     const showToast = (message, type = 'success') => {
         setToast({ message, type })
         setTimeout(() => setToast(null), 3000)
     }
 
+    // Обработчик изменения полей
     const handleChange = (e) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
     }
 
+    // Валидация шага 1 (имя и email)
     const validateStep1 = () => {
         const newErrors = {}
         if (!formData.name) newErrors.name = 'Введите имя'
@@ -39,6 +45,7 @@ export default function RegisterPage() {
         return Object.keys(newErrors).length === 0
     }
 
+    // Валидация шага 2 (пароли)
     const validateStep2 = () => {
         const newErrors = {}
         if (!formData.password) newErrors.password = 'Введите пароль'
@@ -49,12 +56,14 @@ export default function RegisterPage() {
         return Object.keys(newErrors).length === 0
     }
 
+    // Переход на следующий шаг
     const handleNext = () => {
         if (step === 1 && validateStep1()) {
             setStep(2)
         }
     }
 
+    // Отправка формы регистрации
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (!validateStep2()) return
@@ -71,7 +80,6 @@ export default function RegisterPage() {
             setTimeout(() => navigate('/wardrobe'), 1000)
         } catch (error) {
             console.error(error)
-            // Handle detail error if possible
             const msg = error.response?.data?.detail || 'Ошибка регистрации'
             showToast(msg, 'error')
         } finally {
@@ -81,7 +89,6 @@ export default function RegisterPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 md:p-8 bg-gray-50 relative">
-            {/* Back Button */}
             <Link
                 to="/"
                 className="absolute top-6 left-6 p-2 rounded-xl bg-white shadow-md hover:shadow-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-gray-600 hover:text-gray-900"
@@ -91,15 +98,13 @@ export default function RegisterPage() {
             </Link>
 
             <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden w-full max-w-5xl flex flex-col md:flex-row min-h-[600px]">
-
-                {/* Left Side: Branding */}
                 <div className="w-full md:w-1/2 bg-gray-50 relative overflow-hidden">
                     <LoginBranding />
                 </div>
 
-                {/* Right Side: Form */}
                 <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center">
                     <div className="mb-8">
+                        {/* Индикатор шагов */}
                         <div className="flex gap-2 mb-6">
                             <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-gray-200'}`}></div>
                             <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-gray-200'}`}></div>
@@ -153,26 +158,44 @@ export default function RegisterPage() {
                             <>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Пароль</label>
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        placeholder="••••••••"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.password ? 'border-red-300' : 'border-gray-200'}`}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            name="password"
+                                            placeholder="••••••••"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.password ? 'border-red-300' : 'border-gray-200'}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                            <Icon name={showPassword ? "eye-off" : "eye"} size={20} />
+                                        </button>
+                                    </div>
                                     {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Подтверждение пароля</label>
-                                    <input
-                                        type="password"
-                                        name="confirmPassword"
-                                        placeholder="••••••••"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
-                                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.confirmPassword ? 'border-red-300' : 'border-gray-200'}`}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            name="confirmPassword"
+                                            placeholder="••••••••"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.confirmPassword ? 'border-red-300' : 'border-gray-200'}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                            <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={20} />
+                                        </button>
+                                    </div>
                                     {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
                                 </div>
                                 <div className="flex gap-4">
@@ -201,7 +224,6 @@ export default function RegisterPage() {
                         </p>
                     </form>
                 </div>
-
             </div>
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

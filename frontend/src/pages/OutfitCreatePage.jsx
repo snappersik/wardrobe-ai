@@ -1,3 +1,4 @@
+// Страница ручного создания образа (в разработке)
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 import { useAuth } from '../context/AuthContext'

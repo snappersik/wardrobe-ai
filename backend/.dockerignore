@@ -1,0 +1,26 @@
+# Виртуальное окружение Python
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Логи и кэш
+*.log
+.cache
+
+# Локальные файлы
+.env.local
+*.bak
+
+# Загруженные файлы (если не нужны в образе)
+# uploads/
