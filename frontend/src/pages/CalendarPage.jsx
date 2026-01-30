@@ -3,6 +3,8 @@ import { useState } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 
+import Icon from '../components/common/Icon';
+
 export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [selectedDate, setSelectedDate] = useState(null)
@@ -39,9 +41,15 @@ export default function CalendarPage() {
 
     // Демо-данные запланированных образов
     const plannedOutfits = {
+        3: { name: 'Прогулка в парке', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=100&q=80' },
         5: { name: 'Деловой образ', image: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=100&q=80' },
+        8: { name: 'Кафе с друзьями', image: 'https://images.unsplash.com/photo-1529139574466-a302d2052574?auto=format&fit=crop&w=100&q=80' },
         12: { name: 'Выходной день', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=100&q=80' },
+        15: { name: 'Спорт', image: 'https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=100&q=80' },
         18: { name: 'Вечерний лук', image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=100&q=80' },
+        22: { name: 'Поездка за город', image: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=100&q=80' },
+        25: { name: 'Рабочая встреча', image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=100&q=80' },
+        29: { name: 'Свидание', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80' },
     }
 
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
@@ -59,13 +67,13 @@ export default function CalendarPage() {
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
                         <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                            <div className="icon-chevron-left w-5 h-5 text-gray-600"></div>
+                            <Icon name="chevron-left" size={20} className="text-gray-600" />
                         </button>
                         <h2 className="text-xl font-bold text-gray-900">
                             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                         </h2>
                         <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                            <div className="icon-chevron-right w-5 h-5 text-gray-600"></div>
+                            <Icon name="chevron-right" size={20} className="text-gray-600" />
                         </button>
                     </div>
 

@@ -1,3 +1,5 @@
+import Icon from '../common/Icon';
+
 // =============================================================================
 // ПУСТОЕ СОСТОЯНИЕ ГАРДЕРОБА (EmptyState.jsx)
 // =============================================================================
@@ -19,7 +21,7 @@ export default function EmptyState() {
             {/* ============================================================= */}
             {/* Круглый контейнер с иконкой одежды */}
             <div className="w-48 h-48 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <div className="icon-shirt text-gray-300 text-6xl"></div>
+                <Icon name="shirt" size={60} className="text-gray-300" />
             </div>
 
             {/* ============================================================= */}

@@ -1,3 +1,4 @@
+import Icon from '../common/Icon';
 // =============================================================================
 // КАРТОЧКА ВЕЩИ (WardrobeCard.jsx)
 // =============================================================================
@@ -37,7 +38,7 @@ export default function WardrobeCard({ item, onDelete }) {
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     {/* Кнопка редактирования */}
                     <button className="p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-white text-gray-700">
-                        <div className="icon-pencil w-4 h-4"></div>
+                        <Icon name="pencil" size={16} />
                     </button>
 
                     {/* Кнопка удаления */}
@@ -46,7 +47,7 @@ export default function WardrobeCard({ item, onDelete }) {
                         onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
                         className="p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-white text-red-500"
                     >
-                        <div className="icon-trash w-4 h-4"></div>
+                        <Icon name="trash" size={16} />
                     </button>
                 </div>
             </div>

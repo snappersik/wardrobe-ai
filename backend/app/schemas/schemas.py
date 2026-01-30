@@ -55,6 +55,18 @@ class UserLogin(BaseModel):
     password: str                           # Пароль для проверки
 
 
+class UserUpdate(BaseModel):
+    """
+    Схема для ОБНОВЛЕНИЯ профиля пользователя.
+    
+    Используется в: PATCH /api/users/me
+    """
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    city: Optional[str] = None
+
+
 class UserResponse(BaseModel):
     """
     Схема ОТВЕТА с данными пользователя.

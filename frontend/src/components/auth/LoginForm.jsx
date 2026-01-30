@@ -78,10 +78,7 @@ export default function LoginForm({ showToast }) {
 
         // Проверка email
         if (!formData.email) {
-            newErrors.email = 'Введите email'
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            // Простая проверка формата email
-            newErrors.email = 'Некорректный email'
+            newErrors.email = 'Введите email или логин'
         }
 
         // Проверка пароля
@@ -109,14 +106,18 @@ export default function LoginForm({ showToast }) {
         setLoading(true)
         try {
             // Вызываем функцию входа
-            await login(formData.email, formData.password)
+            const userData = await login(formData.email, formData.password)
 
             // Показываем уведомление об успехе
             showToast('Успешный вход!')
 
-            // Редирект в гардероб через 1 секунду
+            // Редирект в зависимости от роли через 1 секунду
             setTimeout(() => {
-                navigate('/wardrobe')
+                if (userData.role === 'admin') {
+                    navigate('/admin')
+                } else {
+                    navigate('/wardrobe')
+                }
             }, 1000)
         } catch (error) {
             console.error(error)
@@ -142,11 +143,11 @@ export default function LoginForm({ showToast }) {
 
                 {/* Поле Email */}
                 <InputGroup
-                    label="Email"
+                    label="Email или логин"
                     name="email"
-                    type="email"
+                    type="text"
                     icon="mail"
-                    placeholder="example@mail.com"
+                    placeholder="example@mail.com или username"
                     value={formData.email}
                     onChange={handleChange}
                     error={errors.email}

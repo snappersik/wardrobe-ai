@@ -1,3 +1,5 @@
+import Icon from '../common/Icon';
+
 export default function HowItWorks() {
     const steps = [
         {
@@ -53,7 +55,7 @@ export default function HowItWorks() {
                             <div className="absolute bottom-8 -left-8 bg-white p-4 rounded-xl shadow-xl w-64 hidden sm:block">
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-gray-400">СЕГОДНЯ</span>
-                                    <div className="icon-cloud-sun text-yellow-500 w-4 h-4"></div>
+                                    <Icon name="cloud-sun" size={16} className="text-yellow-500" />
                                 </div>
                                 <div className="flex gap-2">
                                     <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=100&q=80)' }}></div>

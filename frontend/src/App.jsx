@@ -11,6 +11,10 @@ import { Routes, Route } from 'react-router-dom'
 // ErrorBoundary - компонент для перехвата ошибок и отображения fallback UI
 import ErrorBoundary from './components/common/ErrorBoundary'
 
+// Компоненты защиты маршрутов
+import ProtectedRoute from './components/common/ProtectedRoute'
+import AdminRoute from './components/common/AdminRoute'
+
 // =============================================================================
 // ИМПОРТ СТРАНИЦ (Pages)
 // =============================================================================
@@ -59,20 +63,20 @@ export default function App() {
                 {/* ============================================= */}
                 {/* ЗАЩИЩЁННЫЕ МАРШРУТЫ (требуют авторизации) */}
                 {/* ============================================= */}
-                <Route path="/wardrobe" element={<WardrobePage />} />
-                <Route path="/outfits" element={<OutfitsPage />} />
-                <Route path="/outfits/create" element={<OutfitCreatePage />} />
-                <Route path="/generator" element={<GeneratorPage />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/wardrobe" element={<ProtectedRoute><WardrobePage /></ProtectedRoute>} />
+                <Route path="/outfits" element={<ProtectedRoute><OutfitsPage /></ProtectedRoute>} />
+                <Route path="/outfits/create" element={<ProtectedRoute><OutfitCreatePage /></ProtectedRoute>} />
+                <Route path="/generator" element={<ProtectedRoute><GeneratorPage /></ProtectedRoute>} />
+                <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
                 {/* ============================================= */}
                 {/* АДМИН МАРШРУТЫ (требуют роль admin) */}
                 {/* ============================================= */}
-                <Route path="/admin" element={<AdminDashboardPage />} />
-                <Route path="/admin/users" element={<AdminUsersPage />} />
-                <Route path="/admin/logs" element={<AdminLogsPage />} />
-                <Route path="/admin/editor" element={<AdminEditorPage />} />
+                <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+                <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
+                <Route path="/admin/logs" element={<AdminRoute><AdminLogsPage /></AdminRoute>} />
+                <Route path="/admin/editor" element={<AdminRoute><AdminEditorPage /></AdminRoute>} />
 
                 {/* ============================================= */}
                 {/* СТРАНИЦЫ ОШИБОК */}

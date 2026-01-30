@@ -21,7 +21,10 @@ from app.api import users, clothing, outfits
 from app.db.database import engine
 
 # Импорт базового класса моделей SQLAlchemy
-from app.models.models import Base
+from app.models.models import Base, User
+from app.db.database import async_session_maker
+from app.services.services import get_password_hash
+from sqlalchemy import select
 
 # =============================================================================
 # СОЗДАНИЕ ЭКЗЕМПЛЯРА FASTAPI ПРИЛОЖЕНИЯ
@@ -67,6 +70,10 @@ app.include_router(clothing.router, prefix="/api")
 # Роутер образов: создание, редактирование, удаление нарядов
 app.include_router(outfits.router, prefix="/api")
 
+# Роутер админки
+from app.api import admin
+app.include_router(admin.router, prefix="/api")
+
 # =============================================================================
 # РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ (ЗАГРУЖЕННЫЕ ИЗОБРАЖЕНИЯ)
 # =============================================================================
@@ -95,14 +102,42 @@ async def root():
     return {"message": "Wardrobe AI Backend is running!"}
 
 # =============================================================================
-# СОЗДАНИЕ ТАБЛИЦ ПРИ СТАРТЕ (ОПЦИОНАЛЬНО)
+# СОЗДАНИЕ АДМИНА ПРИ СТАРТЕ
 # =============================================================================
-# Раскомментируйте для автоматического создания таблиц при запуске.
-# В продакшене лучше использовать Alembic миграции.
-# @app.on_event("startup")
-# async def startup():
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
+async def create_admin_user():
+    """
+    Создаёт дефолтного администратора при запуске, если его нет.
+    Login: admin
+    Password: admin
+    """
+    async with async_session_maker() as session:
+        # Проверяем есть ли пользователь с username='admin'
+        result = await session.execute(select(User).filter(User.username == "admin"))
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            print("Creating default admin user...")
+            admin = User(
+                username="admin",
+                email="admin@wardrobe.ai",
+                hashed_password=get_password_hash("admin"),
+                role="admin",
+                full_name="System Administrator"
+            )
+            session.add(admin)
+            await session.commit()
+            print("Admin user created: admin / admin")
+        else:
+            print("Admin user already exists.")
+
+@app.on_event("startup")
+async def startup_event():
+    # Создаём таблицы (если не используется Alembic)
+    # async with engine.begin() as conn:
+    #     await conn.run_sync(Base.metadata.create_all)
+    
+    # Создаём админа
+    await create_admin_user()
 
 # =============================================================================
 # ЗАПУСК СЕРВЕРА ДЛЯ РАЗРАБОТКИ

@@ -52,6 +52,25 @@ services:
       retries: 5     # Количество попыток
 
   # ===========================================================================
+  # СЕРВИС 3: MONGODB (NO SQL DATABASE)
+  # ===========================================================================
+  # MongoDB - документоориентированная база данных для хранения логов аудита.
+  # Требование проекта: использовать MongoDB для неструктурированных данных.
+  mongo:
+    image: mongo:latest
+    container_name: wardrobe_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
   # СЕРВИС 2: BACKEND (FASTAPI + PYTHON)
   # ===========================================================================
   # Бекенд API на FastAPI - обрабатывает все HTTP-запросы от фронтенда:
@@ -80,6 +99,9 @@ services:
       # В Docker Compose контейнеры находят друг друга по именам сервисов
       DATABASE_URL: postgresql+asyncpg://postgres:12345@db:5432/wardrobe_ai
       
+      # URL подключения к MongoDB
+      MONGO_URL: mongodb://mongo:27017
+      
       # Секретный ключ для JWT токенов (хеширование и подпись)
       SECRET_KEY: KdvW21abf!nNJ1s_P6B0diWN2j
       
@@ -103,6 +125,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
 
 # =============================================================================
 # ТОМА (VOLUMES) - ПОСТОЯННОЕ ХРАНИЛИЩЕ
@@ -112,3 +136,5 @@ services:
 volumes:
   # Том для данных PostgreSQL
   postgres_data:
+  # Том для данных MongoDB
+  mongo_data:

@@ -1,28 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UniversalHeader from '../../components/layout/UniversalHeader';
 import UsersTable from '../../components/admin/UsersTable';
+import Icon from '../../components/common/Icon';
+import api from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
+import Toast from '../../components/common/Toast';
 
 const AdminUsersPage = () => {
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
+    const [users, setUsers] = useState([]);
+    const [toast, setToast] = useState(null);
 
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: true
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const fetchUsers = async () => {
+        try {
+            const { data } = await api.get('/admin/users');
+            setUsers(data);
+        } catch (error) {
+            console.error('Failed to fetch users', error);
+        }
     };
 
-    const users = [
-        { id: 1, name: 'Мария Иванова', email: 'maria@example.com', plan: 'Premium', status: 'active', items: 45, outfits: 12, joined: '2023-08-15' },
-        { id: 2, name: 'Елена Смирнова', email: 'elena@example.com', plan: 'Free', status: 'active', items: 12, outfits: 3, joined: '2023-09-20' },
-        { id: 3, name: 'Ольга Козлова', email: 'olga@example.com', plan: 'Premium', status: 'inactive', items: 67, outfits: 24, joined: '2023-07-10' },
-        { id: 4, name: 'Анна Новикова', email: 'anna.n@example.com', plan: 'Free', status: 'active', items: 8, outfits: 2, joined: '2023-10-01' },
-    ];
+    const handleRoleChange = async (userId, newRole) => {
+        try {
+            await api.patch(`/admin/users/${userId}/role`, null, {
+                params: { role: newRole }
+            });
+            setUsers(prev => prev.map(u =>
+                u.id === userId ? { ...u, role: newRole } : u
+            ));
+            setToast({ message: 'Роль успешно обновлена', type: 'success' });
+        } catch (error) {
+            setToast({ message: 'Ошибка обновления роли', type: 'error' });
+        }
+    };
 
     const filteredUsers = users.filter(u =>
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+        (u.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (u.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -33,7 +53,7 @@ const AdminUsersPage = () => {
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <Link to="/admin" className="text-gray-500 hover:text-gray-700">
-                            <div className="icon-arrow-left text-xl"></div>
+                            <Icon name="arrow-left" size={24} />
                         </Link>
                         <h1 className="text-2xl font-bold text-gray-900">Пользователи</h1>
                     </div>
@@ -46,13 +66,14 @@ const AdminUsersPage = () => {
                             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
                         />
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            <div className="icon-search text-lg"></div>
+                            <Icon name="search" size={18} />
                         </div>
                     </div>
                 </div>
 
-                <UsersTable users={filteredUsers} />
+                <UsersTable users={filteredUsers} onRoleChange={handleRoleChange} />
             </main>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

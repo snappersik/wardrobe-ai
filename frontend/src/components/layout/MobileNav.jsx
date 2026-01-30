@@ -6,6 +6,7 @@
 // Имеет 5 пунктов: Гардероб, Образы, Создать, Календарь, Профиль.
 // =============================================================================
 
+import Icon from '../common/Icon';
 // Link для навигации без перезагрузки страницы
 import { Link } from 'react-router-dom'
 
@@ -48,7 +49,7 @@ export default function MobileNav({ activePage = 'home' }) {
                                     to={item.href}
                                     className="absolute -top-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-pink-200 flex items-center justify-center hover:bg-primary-hover transition-transform active:scale-95"
                                 >
-                                    <div className={`icon-${item.icon} w-7 h-7`}></div>
+                                    <Icon name={item.icon} size={28} />
                                 </Link>
                                 <span className="mb-2 text-[10px] font-medium text-gray-400">{item.label}</span>
                             </div>
@@ -65,7 +66,7 @@ export default function MobileNav({ activePage = 'home' }) {
                             className={`flex flex-col items-center justify-center gap-1 pb-2 h-full transition-colors ${isActive ? 'text-primary' : 'text-gray-400 hover:text-gray-600'
                                 }`}
                         >
-                            <div className={`icon-${item.icon} w-6 h-6`}></div>
+                            <Icon name={item.icon} size={24} />
                             <span className="text-[10px] font-medium">{item.label}</span>
                         </Link>
                     )

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
+import Icon from '../components/common/Icon';
 
 export default function GeneratorPage() {
     const [occasion, setOccasion] = useState('')       // Выбранный повод
@@ -64,7 +65,7 @@ export default function GeneratorPage() {
                                         : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
-                                    <div className={`icon-${occ.icon} text-lg`}></div>
+                                    <Icon name={occ.icon} size={20} />
                                     <span className="text-sm font-medium">{occ.label}</span>
                                 </button>
                             ))}
@@ -105,7 +106,9 @@ export default function GeneratorPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="icon-wand-sparkles text-l mr-2"></div>
+                                <div className="mr-2">
+                                    <Icon name="wand-sparkles" size={20} />
+                                </div>
                                 Создать образ
                             </>
                         )}

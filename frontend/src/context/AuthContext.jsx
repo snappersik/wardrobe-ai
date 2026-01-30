@@ -128,12 +128,41 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
+    /**
+     * Обновление профиля пользователя.
+     * 
+     * @param {Object} data - Данные для обновления (username, email, city, etc.)
+     */
+    const updateProfile = async (data) => {
+        try {
+            const response = await api.patch('/users/me', data)
+            setUser(response.data)
+            return response.data
+        } catch (error) {
+            throw error
+        }
+    }
+
+    /**
+     * Удаление аккаунта.
+     */
+    const deleteAccount = async () => {
+        try {
+            await api.delete('/users/me')
+            setUser(null)
+            window.location.href = '/login'
+        } catch (error) {
+            console.error('Failed to delete account', error)
+            throw error
+        }
+    }
+
     // ==========================================================================
     // РЕНДЕР ПРОВАЙДЕРА
     // ==========================================================================
     return (
         // Предоставляем значения всем дочерним компонентам
-        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, deleteAccount }}>
             {/* Показываем приложение только после проверки авторизации */}
             {!loading && children}
         </AuthContext.Provider>

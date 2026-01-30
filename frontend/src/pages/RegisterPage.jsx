@@ -15,6 +15,7 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState(false)           // Показать пароль
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)  // Показать подтверждение
     const [formData, setFormData] = useState({
+        username: '',
         name: '',
         email: '',
         password: '',
@@ -35,9 +36,13 @@ export default function RegisterPage() {
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
     }
 
-    // Валидация шага 1 (имя и email)
+    // Валидация шага 1 (username, имя и email)
     const validateStep1 = () => {
         const newErrors = {}
+        if (!formData.username) newErrors.username = 'Введите логин'
+        else if (formData.username.length < 3) newErrors.username = 'Логин должен быть от 3 символов'
+        else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) newErrors.username = 'Только латиница, цифры и _'
+
         if (!formData.name) newErrors.name = 'Введите имя'
         if (!formData.email) newErrors.email = 'Введите email'
         else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Некорректный email'
@@ -71,7 +76,7 @@ export default function RegisterPage() {
         setLoading(true)
         try {
             await register({
-                username: formData.email.split('@')[0] + Math.floor(Math.random() * 10000),
+                username: formData.username,
                 email: formData.email,
                 password: formData.password,
                 full_name: formData.name
@@ -120,6 +125,18 @@ export default function RegisterPage() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {step === 1 && (
                             <>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Логин (username)</label>
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        placeholder="mari_superstar"
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.username ? 'border-red-300' : 'border-gray-200'}`}
+                                    />
+                                    {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+                                </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя</label>
                                     <input

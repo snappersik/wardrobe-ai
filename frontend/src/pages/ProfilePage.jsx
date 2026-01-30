@@ -1,4 +1,3 @@
-// Страница профиля - редактирование данных пользователя
 import { useState, useEffect, useRef } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
@@ -8,16 +7,18 @@ import Icon from '../components/common/Icon'
 import cities from '../data/russian-cities.json'
 
 export default function ProfilePage() {
-    const { user, logout } = useAuth()
+    const { user, logout, updateProfile, deleteAccount } = useAuth()
     const [toast, setToast] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const fileInputRef = useRef(null)
+
     const [formData, setFormData] = useState({
+        username: '',
         name: '',
         email: '',
         phone: '',
         city: '',
-        style: 'casual',
         notifications: true
     })
 
@@ -26,8 +27,9 @@ export default function ProfilePage() {
         if (user) {
             setFormData(prev => ({
                 ...prev,
-                name: user.full_name || user.username || '',
-                email: user.email || '',
+                username: user.username || 'anna_style',
+                name: user.full_name || 'Анна Петрова',
+                email: user.email || 'anna@example.com',
                 city: user.city || 'Москва',
             }))
         }
@@ -66,14 +68,33 @@ export default function ProfilePage() {
         }
     }
 
-    // Сохранение профиля (заглушка)
-    const handleSubmit = (e) => {
+    // Сохранение профиля
+    const handleSubmit = async (e) => {
         e.preventDefault()
         setLoading(true)
-        setTimeout(() => {
-            setLoading(false)
+        try {
+            await updateProfile({
+                username: formData.username,
+                email: formData.email,
+                full_name: formData.name,
+                city: formData.city
+            })
             showToast('Профиль успешно обновлён!')
-        }, 1000)
+        } catch (error) {
+            console.error(error)
+            showToast(error.response?.data?.detail || 'Ошибка сохранения', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Удаление аккаунта
+    const handleDeleteAccount = async () => {
+        try {
+            await deleteAccount()
+        } catch (error) {
+            showToast('Не удалось удалить аккаунт', 'error')
+        }
     }
 
     return (
@@ -115,11 +136,11 @@ export default function ProfilePage() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Логин (username)</label>
                                 <input
                                     type="text"
-                                    name="name"
-                                    value={formData.name}
+                                    name="username"
+                                    value={formData.username}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                 />
@@ -135,11 +156,11 @@ export default function ProfilePage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Телефон</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Имя (Full Name)</label>
                                 <input
-                                    type="tel"
-                                    name="phone"
-                                    value={formData.phone}
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                 />
@@ -189,11 +210,56 @@ export default function ProfilePage() {
                     </form>
                 </div>
 
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                    <h3 className="font-bold text-gray-900 mb-4">Настройки</h3>
-                    <button onClick={logout} className="text-red-600 font-medium hover:underline">Выйти из аккаунта</button>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h3 className="font-bold text-gray-900 mb-1">Настройки аккаунта</h3>
+                        <p className="text-sm text-gray-500">Управление безопасностью и выходом</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={logout}
+                            className="btn btn-outline px-6 py-2"
+                        >
+                            Выйти
+                        </button>
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="btn bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 border-none"
+                        >
+                            Удалить аккаунт
+                        </button>
+                    </div>
                 </div>
             </main>
+
+            {/* Модальное окно подтверждения удаления */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Icon name="alert-triangle" size={32} className="text-red-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-center mb-2">Удалить аккаунт?</h2>
+                        <p className="text-gray-500 text-center mb-8">
+                            Это действие нельзя отменить. Все ваши данные будут безвозвратно удалены.
+                        </p>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="flex-1 btn btn-outline py-3"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                className="flex-1 btn bg-red-600 hover:bg-red-700 text-white py-3 border-none"
+                            >
+                                Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <MobileNav activePage="profile" />
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

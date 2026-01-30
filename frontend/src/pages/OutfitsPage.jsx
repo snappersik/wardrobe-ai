@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'  // Шапка
 import MobileNav from '../components/layout/MobileNav'              // Мобильная навигация
 import FAB from '../components/wardrobe/FAB'                        // Плавающая кнопка
+import Icon from '../components/common/Icon';
 
 // API клиент
 import api from '../api/axios'
@@ -146,7 +147,7 @@ export default function OutfitsPage() {
                     // Пустое состояние - нет образов
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="w-48 h-48 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                            <div className="icon-layers text-gray-300 w-24 h-24"></div>
+                            <Icon name="layers" size={96} className="text-gray-300" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Нет сохранённых образов</h3>
                         <p className="text-gray-500 max-w-xs mb-8">Создайте свой первый образ с помощью AI генератора</p>

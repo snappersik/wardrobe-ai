@@ -1,3 +1,5 @@
+import Icon from '../common/Icon';
+
 // Брендинг для страниц входа/регистрации (левая панель)
 export default function LoginBranding() {
     return (
@@ -13,7 +15,7 @@ export default function LoginBranding() {
             <div className="relative z-10 p-8 md:p-12 flex flex-col h-full text-white justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
-                        <div className="icon-shirt w-6 h-6"></div>
+                        <Icon name="shirt" size={24} />
                     </div>
                     <span className="font-bold text-xl tracking-tight">Умный Гардероб</span>
                 </div>

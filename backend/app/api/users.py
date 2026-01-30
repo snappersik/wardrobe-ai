@@ -114,14 +114,16 @@ async def register(
     await db.commit()
     await db.refresh(new_user)  # Обновляем объект чтобы получить id и created_at
     
-    # Шаг 4: Записываем в лог аудита (журнал действий)
-    log = models.AuditLog(
-        user_id=new_user.id, 
-        action="register",  # Тип действия: регистрация
-        details=f"New user: {user.username}"
-    )
-    db.add(log)
-    await db.commit()
+    # Шаг 4: Записываем в лог аудита (MongoDB)
+    # Используем db.audit_logs.insert_one
+    from app.db.mongo import db as mongo_db
+    await mongo_db.audit_logs.insert_one({
+        "user_id": new_user.id,
+        "username": new_user.username,
+        "action": "register",
+        "details": f"New user: {user.username}",
+        "timestamp": datetime.utcnow()
+    })
     
     # Шаг 5: Автоматически авторизуем пользователя (устанавливаем JWT cookie)
     access_token = services.create_access_token(
@@ -172,6 +174,7 @@ async def login(
     """
     
     # Шаг 1: Проверяем учётные данные
+    print(f"Login attempt for: {credentials.username_or_email}")
     user = await services.authenticate_user(
         db, 
         credentials.username_or_email, 
@@ -180,19 +183,23 @@ async def login(
     
     # Если пользователь не найден или пароль неверный
     if not user:
+        print(f"Authentication failed for {credentials.username_or_email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password"
         )
+    print(f"Authentication successful for {user.username}")
     
-    # Шаг 2: Записываем вход в лог аудита
-    log = models.AuditLog(
-        user_id=user.id, 
-        action="login",  # Тип действия: вход
-        details=f"Login: {user.username}"
-    )
-    db.add(log)
-    await db.commit()
+    # Шаг 2: Записываем вход в лог аудита (MongoDB)
+    from app.db.mongo import db as mongo_db
+    from datetime import datetime
+    await mongo_db.audit_logs.insert_one({
+        "user_id": user.id,
+        "username": user.username,
+        "action": "login",
+        "details": f"Login: {user.username}",
+        "timestamp": datetime.utcnow()
+    })
     
     # Шаг 3: Создаём JWT токен и устанавливаем cookie
     access_token = services.create_access_token(
@@ -255,3 +262,62 @@ async def get_me(current_user: models.User = Depends(services.get_current_user))
         Cookie: wardrobe_access_token=...
     """
     return current_user
+
+
+# =============================================================================
+# ЭНДПОИНТ: ОБНОВЛЕНИЕ ПРОФИЛЯ
+# =============================================================================
+@router.patch("/me", response_model=schemas.UserResponse)
+async def update_profile(
+    user_update: schemas.UserUpdate,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Обновление данных профиля текущего пользователя.
+    """
+    # Если меняем username, проверяем уникальность
+    if user_update.username and user_update.username != current_user.username:
+        existing = await db.execute(select(models.User).filter(models.User.username == user_update.username))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Username already taken")
+        current_user.username = user_update.username
+
+    # Если меняем email, проверяем уникальность
+    if user_update.email and user_update.email != current_user.email:
+        existing = await db.execute(select(models.User).filter(models.User.email == user_update.email))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already taken")
+        current_user.email = user_update.email
+
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    
+    if user_update.city is not None:
+        current_user.city = user_update.city
+    
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+# =============================================================================
+# ЭНДПОИНТ: УДАЛЕНИЕ АККАУНТА
+# =============================================================================
+@router.delete("/me")
+async def delete_account(
+    response: Response,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Удаление аккаунта текущего пользователя.
+    """
+    # Удаляем пользователя
+    await db.delete(current_user)
+    await db.commit()
+    
+    # Удаляем куки авторизации
+    services.remove_auth_cookie(response)
+    
+    return {"message": "Account successfully deleted"}

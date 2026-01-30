@@ -1,3 +1,4 @@
+import Icon from '../common/Icon';
 import { Link } from 'react-router-dom';
 
 const QuickActions = ({ actions }) => {
@@ -14,7 +15,9 @@ const QuickActions = ({ actions }) => {
                             onClick={action.onClick}
                             className="p-4 rounded-xl border-2 border-gray-200 hover:border-primary hover:bg-pink-50 transition-all text-left"
                         >
-                            <div className={`icon-${action.icon} text-xl text-gray-600 mb-2`}></div>
+                            <div className="text-gray-600 mb-2">
+                                <Icon name={action.icon} size={24} />
+                            </div>
                             <p className="font-medium">{action.label}</p>
                         </Component>
                     );

@@ -11,6 +11,7 @@ sqlalchemy==2.0.36               # ORM для работы с PostgreSQL (async 
 alembic==1.13.3                  # Миграции базы данных (версионирование схемы)
 asyncpg==0.29.0                  # Асинхронный драйвер PostgreSQL для SQLAlchemy
 psycopg2-binary                  # Синхронный драйвер PostgreSQL (для Alembic миграций)
+motor==3.3.2                     # Асинхронный драйвер MongoDB (для логов)
 
 # ====================================
 # Data Validation & Settings

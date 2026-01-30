@@ -1,23 +1,45 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UniversalHeader from '../../components/layout/UniversalHeader';
 import StatCard from '../../components/admin/StatCard';
 import BarChart from '../../components/admin/BarChart';
 import DonutChart from '../../components/admin/DonutChart';
 import QuickActions from '../../components/admin/QuickActions';
+import api from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboardPage = () => {
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: true
-    };
+    const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [dashboardData, setDashboardData] = useState({
+        total_users: 0,
+        total_items: 0,
+        total_outfits: 0,
+        recent_logs: 0
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { data } = await api.get('/admin/stats');
+                setDashboardData(data);
+            } catch (error) {
+                console.error('Failed to fetch admin stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user?.role === 'admin') {
+            fetchStats();
+        }
+    }, [user]);
 
     const stats = [
-        { label: 'Всего пользователей', value: '12,345', icon: 'users', color: 'bg-blue-500' },
-        { label: 'Активных сегодня', value: '1,234', icon: 'activity', color: 'bg-green-500' },
-        { label: 'Новых за неделю', value: '567', icon: 'user-plus', color: 'bg-purple-500' },
-        { label: 'Образов создано', value: '45,678', icon: 'layers', color: 'bg-pink-500' },
+        { label: 'Всего пользователей', value: dashboardData.total_users, icon: 'users', color: 'bg-blue-500' },
+        { label: 'Логи за 24ч', value: dashboardData.recent_logs, icon: 'activity', color: 'bg-green-500' },
+        { label: 'Вещей в базе', value: dashboardData.total_items, icon: 'layers', color: 'bg-purple-500' },
+        { label: 'Образов создано', value: dashboardData.total_outfits, icon: 'layout', color: 'bg-pink-500' },
     ];
 
     const userGrowthData = [
@@ -60,16 +82,6 @@ const AdminDashboardPage = () => {
             <main className="flex-grow container mx-auto max-w-7xl px-4 md:px-6 py-6">
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-2xl font-bold text-gray-900">Панель администратора</h1>
-                    <div className="flex gap-3">
-                        <Link to="/admin/users" className="btn btn-outline px-4 py-2">
-                            <div className="icon-users text-lg mr-2"></div>
-                            Пользователи
-                        </Link>
-                        <Link to="/admin/logs" className="btn btn-outline px-4 py-2">
-                            <div className="icon-file-text text-lg mr-2"></div>
-                            Логи
-                        </Link>
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import UniversalHeader from '../../components/layout/UniversalHeader';
+import Icon from '../../components/common/Icon';
 
 // Initial Mock Data for Sections
 const INITIAL_SECTIONS = [
@@ -174,10 +175,10 @@ const AdminEditorPage = () => {
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link to="/admin" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div className="icon-arrow-left text-xl text-gray-600"></div>
+                        <Icon name="arrow-left" size={24} className="text-gray-600" />
                     </Link>
                     <div className="flex items-center gap-2">
-                        <div className="icon-pencil text-xl text-gray-700"></div>
+                        <Icon name="pencil" size={24} className="text-gray-700" />
                         <h1 className="text-lg font-bold text-gray-900">Редактор страниц</h1>
                     </div>
 
@@ -208,10 +209,10 @@ const AdminEditorPage = () => {
                                         onClick={() => handleSelectPage(page.id)}
                                         disabled={!page.available}
                                         className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors text-sm ${page.id === selectedPage
-                                                ? 'bg-pink-50 text-primary'
-                                                : page.available
-                                                    ? 'hover:bg-gray-50 text-gray-700'
-                                                    : 'text-gray-400 cursor-not-allowed'
+                                            ? 'bg-pink-50 text-primary'
+                                            : page.available
+                                                ? 'hover:bg-gray-50 text-gray-700'
+                                                : 'text-gray-400 cursor-not-allowed'
                                             }`}
                                     >
                                         <span className="font-medium">{page.name}</span>
@@ -233,14 +234,14 @@ const AdminEditorPage = () => {
                             disabled={historyIndex === 0}
                             className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
-                            <div className="icon-undo text-lg text-gray-600"></div>
+                            <Icon name="undo" size={20} className="text-gray-600" />
                         </button>
                         <button
                             onClick={handleRedo}
                             disabled={historyIndex >= history.length - 1}
                             className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
-                            <div className="icon-redo text-lg text-gray-600"></div>
+                            <Icon name="redo" size={20} className="text-gray-600" />
                         </button>
                     </div>
 
@@ -272,7 +273,7 @@ const AdminEditorPage = () => {
                         disabled={status === 'publishing' || status === 'saved'}
                         className="px-4 py-2 bg-primary text-white rounded-xl font-medium hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                     >
-                        <div className="icon-upload text-lg"></div>
+                        <Icon name="upload" size={20} />
                         Опубликовать
                     </button>
                 </div>
@@ -286,7 +287,7 @@ const AdminEditorPage = () => {
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                             <span className="font-bold text-sm text-gray-700">Блоки</span>
                             <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 hover:bg-gray-100 rounded">
-                                <div className="icon-x text-lg text-gray-500"></div>
+                                <Icon name="x" size={20} className="text-gray-500" />
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
@@ -296,7 +297,7 @@ const AdminEditorPage = () => {
                                     onClick={() => handleAddSection(template.type)}
                                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:border-primary hover:bg-pink-50 transition-all mb-3 text-left flex items-center gap-3"
                                 >
-                                    <div className={`icon-${template.icon} text-lg text-gray-500`}></div>
+                                    <Icon name={template.icon} size={20} className="text-gray-500" />
                                     <span className="text-sm font-medium text-gray-700">{template.name}</span>
                                 </button>
                             ))}
@@ -309,7 +310,7 @@ const AdminEditorPage = () => {
                             onClick={() => setIsSidebarOpen(true)}
                             className="absolute left-4 top-36 z-30 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 text-gray-600"
                         >
-                            <div className="icon-panel-left text-xl"></div>
+                            <Icon name="panel-left" size={24} />
                         </button>
                     )}
 
@@ -328,10 +329,10 @@ const AdminEditorPage = () => {
                                     onDragEnd={handleDragEnd}
                                     onClick={() => handleSectionSelect(section.id)}
                                     className={`relative border-2 transition-all group cursor-pointer ${selectedSectionId === section.id
-                                            ? 'border-primary ring-2 ring-primary ring-opacity-20'
-                                            : draggedIndex === index
-                                                ? 'border-primary'
-                                                : 'border-transparent hover:border-pink-200'
+                                        ? 'border-primary ring-2 ring-primary ring-opacity-20'
+                                        : draggedIndex === index
+                                            ? 'border-primary'
+                                            : 'border-transparent hover:border-pink-200'
                                         }`}
                                 >
                                     {/* Section Controls */}
@@ -340,13 +341,13 @@ const AdminEditorPage = () => {
                                             onClick={(e) => { e.stopPropagation(); handleSectionDelete(section.id); }}
                                             className="p-1.5 bg-white rounded shadow-sm text-gray-400 hover:text-red-500 hover:bg-red-50"
                                         >
-                                            <div className="icon-trash-2 text-sm"></div>
+                                            <Icon name="trash-2" size={16} />
                                         </button>
                                     </div>
 
                                     {/* Drag Handle */}
                                     <div className="absolute top-1/2 -left-8 -translate-y-1/2 p-1.5 bg-white rounded shadow-sm text-gray-400 cursor-move opacity-0 group-hover:opacity-100 hover:text-gray-600 transition-all z-20">
-                                        <div className="icon-grip-vertical text-sm"></div>
+                                        <Icon name="grip-vertical" size={16} />
                                     </div>
 
                                     {/* Section Preview */}
@@ -371,7 +372,7 @@ const AdminEditorPage = () => {
                                 <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                                     <span className="font-bold text-sm text-gray-700">Свойства</span>
                                     <button onClick={() => setSelectedSectionId(null)} className="p-1 hover:bg-gray-100 rounded">
-                                        <div className="icon-x text-lg text-gray-500"></div>
+                                        <Icon name="x" size={20} className="text-gray-500" />
                                     </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -417,7 +418,7 @@ const AdminEditorPage = () => {
                 <div className="flex-1 flex items-center justify-center">
                     <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 max-w-md">
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                            <div className="icon-lock text-3xl text-gray-400"></div>
+                            <Icon name="lock" size={32} className="text-gray-400" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Недоступно для редактирования</h3>
                         <p className="text-gray-500">Редактирование этой страницы будет добавлено в будущих обновлениях.</p>
@@ -429,7 +430,7 @@ const AdminEditorPage = () => {
             {toast && (
                 <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 z-50 animate-bounce-in ${toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white'
                     }`}>
-                    <div className={`icon-${toast.type === 'success' ? 'check-circle' : 'info'} text-lg`}></div>
+                    <Icon name={toast.type === 'success' ? 'check-circle' : 'info'} size={20} />
                     <span>{toast.message}</span>
                 </div>
             )}
