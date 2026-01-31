@@ -58,10 +58,14 @@ class Settings(BaseSettings):
     
     # API ключ для OpenWeather (погода для AI-рекомендаций)
     OPENWEATHER_API_KEY: str = "your_openweather_key"
+
+    # MongoDB connection URL
+    MONGO_URL: str = "mongodb://localhost:27017"
     
     class Config:
         # Указываем файл с переменными окружения
         env_file = ".env"
+        extra = "ignore"  # Игнорировать лишние поля в .env
 
 # =============================================================================
 # СОЗДАНИЕ ДВИЖКА БАЗЫ ДАННЫХ (ENGINE)

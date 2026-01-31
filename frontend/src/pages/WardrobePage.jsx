@@ -68,29 +68,12 @@ export default function WardrobePage() {
     const fetchItems = async () => {
         try {
             setLoading(true)
-            // MOCK DATA for demonstration
-            const MOCK_ITEMS = [
-                { id: 1, name: 'Белая футболка', category: 'Верх', image: 'https://www.nt-nn.com/_data/resources/img/thumbnails/13961.61_10_1000x1000.jpg', created_at: new Date().toISOString() },
-                { id: 2, name: 'Синие джинсы', category: 'Низ', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRefjgrkoYyvVz4ccyF2i1ebhT_sG8jlRU_yw&s', created_at: new Date(Date.now() - 86400000).toISOString() },
-                { id: 3, name: 'Кожаная куртка', category: 'Верх', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8xpRrLUyN81TxF98h7ulvViC2M2Pb3juqbA&s', created_at: new Date(Date.now() - 172800000).toISOString() },
-                { id: 4, name: 'Белые кеды', category: 'Обувь', image: 'https://respect-shoes.ru/upload/iblock/14e/owzr7qaw4tkh2vnpcs2jthzwcs3yxc2k.JPG', created_at: new Date(Date.now() - 259200000).toISOString() },
-                { id: 5, name: 'Летнее платье', category: 'Платья', image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=500&q=60', created_at: new Date(Date.now() - 345600000).toISOString() },
-                { id: 6, name: 'Черная сумка', category: 'Аксессуары', image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=500&q=60', created_at: new Date(Date.now() - 432000000).toISOString() },
-            ];
-
-            // Simulate API delay
-            setTimeout(() => {
-                setItems(MOCK_ITEMS)
-            }, 500);
-
-            // COMMENTED OUT REAL API CALL
-            // const { data } = await api.get('/clothing')
-            // setItems(data)
+            const { data } = await api.get('/clothing')
+            setItems(data)
         } catch (error) {
             console.error('Failed to fetch items', error)
         } finally {
-            // setLoading(false) - moved inside timeout above in real app, but here effectively instant
-            setTimeout(() => setLoading(false), 500)
+            setLoading(false)
         }
     }
 

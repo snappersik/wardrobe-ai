@@ -27,10 +27,10 @@ export default function ProfilePage() {
         if (user) {
             setFormData(prev => ({
                 ...prev,
-                username: user.username || 'anna_style',
-                name: user.full_name || 'Анна Петрова',
-                email: user.email || 'anna@example.com',
-                city: user.city || 'Москва',
+                username: user.username || '',
+                name: user.full_name || '',
+                email: user.email || '',
+                city: user.city || '',
             }))
         }
     }, [user])

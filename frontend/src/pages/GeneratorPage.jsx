@@ -32,9 +32,9 @@ export default function GeneratorPage() {
         setTimeout(() => {
             setResult({
                 items: [
-                    { name: 'Белая рубашка', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=200&q=80' },
-                    { name: 'Джинсы прямые', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=200&q=80' },
-                    { name: 'Кеды белые', image: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=200&q=80' },
+                    { name: 'Белая рубашка', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7YZQzpkJX0ATwUHDQ9tX6gl1-1ygoiSqR2Q&s' },
+                    { name: 'Джинсы прямые', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgL6dGb5I_J8wg-c1aJIAdUH9SAQgA8liwbg&s' },
+                    { name: 'Кеды белые', image: 'https://eobuv.ru/upload/resize_cache/webp/iblock/840/zyaywcj3hntedcerhk7dwz9lzaubxfn0.webp' },
                 ]
             })
             setGenerating(false)
