@@ -20,8 +20,9 @@ import EmptyState from './EmptyState'
  * @param {Array} items - Массив вещей для отображения
  * @param {boolean} loading - Флаг загрузки (показывает скелетон)
  * @param {function} onDelete - Callback для удаления вещи
+ * @param {function} onAddClick - Callback для добавления вещи (передаётся в EmptyState)
  */
-export default function WardrobeGrid({ items, loading, onDelete }) {
+export default function WardrobeGrid({ items, loading, onDelete, onAddClick }) {
     // ==========================================================================
     // СОСТОЯНИЕ: ЗАГРУЗКА
     // ==========================================================================
@@ -50,7 +51,7 @@ export default function WardrobeGrid({ items, loading, onDelete }) {
     // ==========================================================================
     // Если вещей нет - показываем пустое состояние с призывом добавить
     if (items.length === 0) {
-        return <EmptyState />
+        return <EmptyState onAddClick={onAddClick} />
     }
 
     // ==========================================================================

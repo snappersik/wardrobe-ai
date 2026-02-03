@@ -1,0 +1,57 @@
+[
+    {
+        "id": "t-shirt",
+        "name": "Футболка",
+        "type": "top"
+    },
+    {
+        "id": "trouser",
+        "name": "Брюки",
+        "type": "bottom"
+    },
+    {
+        "id": "pullover",
+        "name": "Пуловер",
+        "type": "top"
+    },
+    {
+        "id": "dress",
+        "name": "Платье",
+        "type": "full"
+    },
+    {
+        "id": "coat",
+        "name": "Пальто",
+        "type": "top"
+    },
+    {
+        "id": "sandal",
+        "name": "Сандалии",
+        "type": "shoes"
+    },
+    {
+        "id": "shirt",
+        "name": "Рубашка",
+        "type": "top"
+    },
+    {
+        "id": "sneaker",
+        "name": "Кроссовки",
+        "type": "shoes"
+    },
+    {
+        "id": "bag",
+        "name": "Сумка",
+        "type": "accessory"
+    },
+    {
+        "id": "ankle-boot",
+        "name": "Ботинки",
+        "type": "shoes"
+    },
+    {
+        "id": "unknown",
+        "name": "Другое",
+        "type": "other"
+    }
+]

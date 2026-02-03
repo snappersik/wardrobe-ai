@@ -43,11 +43,8 @@ router = APIRouter(prefix="/clothing", tags=["Clothing"])
 
 # Импорт ML сервисов
 from app.ml.remover import get_remover
-from ultralytics import YOLO
-
-# Загружаем модель YOLO один раз при импорте (или можно в startup)
-# Используем предобученную на одежде модель или базовую n-версию
-yolo_model = YOLO("yolov8n.pt") 
+from app.ml.classifier import get_classifier
+from app.ml.color_extractor import extract_dominant_color
 
 # =============================================================================
 # ЭНДПОИНТ: ЗАГРУЗКА ФОТО ОДЕЖДЫ
@@ -65,7 +62,7 @@ async def upload_item(
     1. Создаём папку uploads если её нет
     2. Генерируем уникальное имя файла
     3. Сохраняем временный файл
-    4. Распознаем вещь через YOLOv8
+    4. Распознаем вещь через Fashion-MNIST CNN
     5. Удаляем фон через RemBG
     6. Сохраняем итоговый PNG
     7. Создаём запись в БД
@@ -83,15 +80,14 @@ async def upload_item(
         shutil.copyfileobj(file.file, buffer)
     
     try:
-        # Шаг 4: Распознавание через YOLOv8
-        results = yolo_model.predict(temp_path, imgsz=640, conf=0.25)
+        # Шаг 4: Распознавание через Fashion-MNIST классификатор
+        classifier = get_classifier()
+        prediction = classifier.predict(temp_path)
         
-        category = "unknown"
-        if len(results) > 0 and len(results[0].boxes) > 0:
-            # Берем первый найденный объект с самой высокой уверенностью
-            top_box = results[0].boxes[0]
-            class_id = int(top_box.cls[0])
-            category = yolo_model.names[class_id]
+        category = prediction.get("id", "unknown")
+        confidence = prediction.get("confidence", 0.0)
+        
+        print(f"🎯 Классификация: {prediction['name']} ({category}) - {confidence*100:.1f}%")
         
         # Шаг 5: Удаление фона через RemBG
         final_filename = f"{file_id}.png" # Всегда PNG для прозрачности
@@ -100,13 +96,20 @@ async def upload_item(
         remover = get_remover()
         remover.remove_background(temp_path, final_path)
         
+        # Шаг 5.5: Извлечение доминирующего цвета через K-means
+        color_info = extract_dominant_color(final_path)
+        color_name = color_info.get("name_ru", "неизвестный")
+        color_hex = color_info.get("hex", "#808080")
+        
+        print(f"🎨 Цвет: {color_name} ({color_hex})")
+        
         # Шаг 6: Создаём запись в базе данных
         new_item = models.ClothingItem(
             owner_id=current_user.id,
             filename=file.filename,
             image_path=final_path,
             category=category,
-            color="auto-detected" # TODO: Добавить палитру цветов
+            color=color_name  # Теперь реальный цвет из K-means!
         )
         
         db.add(new_item)
@@ -133,7 +136,7 @@ async def upload_item(
 # =============================================================================
 # ЭНДПОИНТ: ПОЛУЧЕНИЕ СПИСКА СВОИХ ВЕЩЕЙ
 # =============================================================================
-@router.get("/my-items", response_model=list[schemas.ClothingItemResponse])
+@router.get("/", response_model=list[schemas.ClothingItemResponse])
 async def get_my_items(
     current_user: models.User = Depends(services.get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -151,7 +154,7 @@ async def get_my_items(
         List[ClothingItemResponse]: Список вещей пользователя
     
     Пример запроса:
-        GET /api/clothing/my-items
+        GET /api/clothing
         Cookie: wardrobe_access_token=...
     
     Пример ответа:
@@ -176,6 +179,48 @@ async def get_my_items(
     # Возвращаем список вещей
     return result.scalars().all()
 
+
+# =============================================================================
+# ЭНДПОИНТ: ОБНОВЛЕНИЕ ВЕЩИ
+# =============================================================================
+@router.put("/{item_id}", response_model=schemas.ClothingItemResponse)
+async def update_item(
+    item_id: int,
+    item_data: schemas.ClothingItemUpdate,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Обновление данных вещи (категория, цвет, сезон, стиль, название).
+    """
+    # Ищем вещь по ID и проверяем владельца
+    result = await db.execute(
+        select(models.ClothingItem).filter(
+            models.ClothingItem.id == item_id,
+            models.ClothingItem.owner_id == current_user.id
+        )
+    )
+    item = result.scalar_one_or_none()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Обновляем поля если они переданы
+    if item_data.name is not None:
+        item.filename = item_data.name  # Используем filename для хранения названия
+    if item_data.category is not None:
+        item.category = item_data.category
+    if item_data.color is not None:
+        item.color = item_data.color
+    if item_data.season is not None:
+        item.season = item_data.season
+    if item_data.style is not None:
+        item.style = item_data.style
+    
+    await db.commit()
+    await db.refresh(item)
+    
+    return item
 
 # =============================================================================
 # ЭНДПОИНТ: УДАЛЕНИЕ ВЕЩИ

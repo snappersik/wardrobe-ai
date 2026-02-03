@@ -10,8 +10,10 @@ import Icon from '../common/Icon';
 /**
  * Пустое состояние гардероба.
  * Отображается когда пользователь ещё не добавил вещи.
+ * 
+ * @param {function} onAddClick - Callback при клике на кнопку добавления
  */
-export default function EmptyState() {
+export default function EmptyState({ onAddClick }) {
     return (
         // Центрируем контент по вертикали и горизонтали
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -35,8 +37,10 @@ export default function EmptyState() {
             {/* ============================================================= */}
             {/* КНОПКА ДЕЙСТВИЯ */}
             {/* ============================================================= */}
-            {/* TODO: Добавить onClick для открытия модального окна загрузки */}
-            <button className="btn btn-primary px-8">
+            <button
+                onClick={onAddClick}
+                className="btn btn-primary px-8"
+            >
                 Добавить первую вещь
             </button>
         </div>

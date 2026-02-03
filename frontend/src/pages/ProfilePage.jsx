@@ -11,6 +11,7 @@ export default function ProfilePage() {
     const [toast, setToast] = useState(null)
     const [loading, setLoading] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false)
     const fileInputRef = useRef(null)
 
     const [formData, setFormData] = useState({
@@ -68,11 +69,53 @@ export default function ProfilePage() {
         }
     }
 
-    // Сохранение профиля
+    // Drag-and-drop для аватара
+    const handleAvatarDragOver = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    const handleAvatarDragEnter = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDraggingAvatar(true)
+    }
+
+    const handleAvatarDragLeave = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDraggingAvatar(false)
+    }
+
+    const handleAvatarDrop = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDraggingAvatar(false)
+
+        const file = e.dataTransfer.files[0]
+        if (file && file.type.startsWith('image/')) {
+            const objectUrl = URL.createObjectURL(file)
+            setFormData(prev => ({ ...prev, avatarPreview: objectUrl }))
+            showToast('Фото выбрано', 'success')
+        }
+    }
+
+    // Сохранение профиля + загрузка аватарки
     const handleSubmit = async (e) => {
         e.preventDefault()
         setLoading(true)
         try {
+            // Если выбран новый файл аватарки - загружаем
+            if (fileInputRef.current?.files?.[0]) {
+                const formData = new FormData()
+                formData.append('file', fileInputRef.current.files[0])
+
+                await api.post('/users/me/avatar', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+            }
+
+            // Обновляем остальные данные профиля
             await updateProfile({
                 username: formData.username,
                 email: formData.email,
@@ -104,18 +147,28 @@ export default function ProfilePage() {
             <main className="flex-grow container mx-auto max-w-2xl px-4 md:px-6 py-6">
                 <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
                     <div className="flex items-center gap-6 mb-8">
-                        <div className="relative">
+                        <div
+                            className={`relative cursor-pointer transition-all ${isDraggingAvatar ? 'scale-110 ring-4 ring-primary/30 rounded-full' : ''}`}
+                            onDragOver={handleAvatarDragOver}
+                            onDragEnter={handleAvatarDragEnter}
+                            onDragLeave={handleAvatarDragLeave}
+                            onDrop={handleAvatarDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                        >
                             <img
-                                src={formData.avatarPreview || user?.avatar || 'https://ui-avatars.com/api/?name=' + (user?.full_name || user?.username || 'User')}
+                                src={formData.avatarPreview || (user?.avatar_path ? `http://localhost:8000/${user.avatar_path}` : 'https://ui-avatars.com/api/?name=' + (user?.full_name || user?.username || 'User'))}
                                 alt={user?.name}
-                                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                                className={`w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg ${isDraggingAvatar ? 'opacity-50' : ''}`}
                             />
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-colors flex items-center justify-center"
-                            >
-                                <Icon name="camera" size={16} />
-                            </button>
+                            {isDraggingAvatar ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 rounded-full">
+                                    <Icon name="download" size={24} className="text-primary" />
+                                </div>
+                            ) : (
+                                <div className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-colors flex items-center justify-center">
+                                    <Icon name="camera" size={16} />
+                                </div>
+                            )}
                             <input
                                 type="file"
                                 ref={fileInputRef}

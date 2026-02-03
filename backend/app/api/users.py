@@ -79,7 +79,7 @@ async def register(
             "email": "john@example.com",
             "password": "secure_password_123",
             "full_name": "John Doe",
-            "city": "Moscow"
+            "city": "Москва"
         }
     """
     
@@ -321,3 +321,50 @@ async def delete_account(
     services.remove_auth_cookie(response)
     
     return {"message": "Account successfully deleted"}
+
+
+# =============================================================================
+# ЭНДПОИНТ: ЗАГРУЗКА АВАТАРКИ
+# =============================================================================
+from fastapi import UploadFile, File
+import uuid
+import shutil
+import os
+
+@router.post("/me/avatar", response_model=schemas.UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Загрузка аватарки пользователя.
+    
+    Сохраняет изображение в папку uploads/avatars/ и обновляет путь в БД.
+    """
+    # Создаём папку для аватарок
+    avatar_dir = "uploads/avatars"
+    os.makedirs(avatar_dir, exist_ok=True)
+    
+    # Генерируем уникальное имя файла
+    file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    avatar_filename = f"{current_user.id}_{uuid.uuid4().hex[:8]}.{file_ext}"
+    avatar_path = f"{avatar_dir}/{avatar_filename}"
+    
+    # Удаляем старую аватарку если есть
+    if current_user.avatar_path and os.path.exists(current_user.avatar_path):
+        try:
+            os.remove(current_user.avatar_path)
+        except:
+            pass
+    
+    # Сохраняем файл
+    with open(avatar_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Обновляем путь в БД
+    current_user.avatar_path = avatar_path
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return current_user

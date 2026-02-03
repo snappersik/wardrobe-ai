@@ -6,7 +6,7 @@
 // =============================================================================
 
 // React хуки для работы с состоянием и эффектами
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // Компоненты layout (шапка и мобильная навигация)
 import UniversalHeader from '../components/layout/UniversalHeader'
@@ -16,8 +16,9 @@ import MobileNav from '../components/layout/MobileNav'
 import WardrobeHeader from '../components/wardrobe/WardrobeHeader'     // Заголовок с поиском
 import CategoryFilter from '../components/wardrobe/CategoryFilter'     // Фильтр по категориям
 import WardrobeGrid from '../components/wardrobe/WardrobeGrid'         // Сетка карточек
-import FAB from '../components/wardrobe/FAB'                           // Плавающая кнопка
+import WardrobeFAB from '../components/wardrobe/WardrobeFAB'           // Плавающая кнопка (новая)
 import UploadModal from '../components/wardrobe/UploadModal'           // Модалка загрузки
+import ItemEditModal from '../components/wardrobe/ItemEditModal'       // Модалка редактирования после загрузки
 
 // API клиент для запросов
 import api from '../api/axios'
@@ -45,6 +46,9 @@ export default function WardrobePage() {
     // Состояние модального окна загрузки
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
 
+    // Режим загрузки: 'gallery' или 'camera'
+    const [uploadMode, setUploadMode] = useState('gallery')
+
     // Активная категория для фильтрации
     const [activeCategory, setActiveCategory] = useState('Все')
 
@@ -53,6 +57,12 @@ export default function WardrobePage() {
 
     // Опция сортировки (newest/oldest)
     const [sortOption, setSortOption] = useState('newest')
+
+    // Загруженная вещь для редактирования
+    const [uploadedItem, setUploadedItem] = useState(null)
+
+    // Модальное окно редактирования
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
     // ==========================================================================
     // ЗАГРУЗКА ДАННЫХ ПРИ МОНТИРОВАНИИ
@@ -78,6 +88,19 @@ export default function WardrobePage() {
     }
 
     // ==========================================================================
+    // ОБРАБОТЧИКИ FAB
+    // ==========================================================================
+    const handleCameraClick = () => {
+        setUploadMode('camera')
+        setIsUploadModalOpen(true)
+    }
+
+    const handleGalleryClick = () => {
+        setUploadMode('gallery')
+        setIsUploadModalOpen(true)
+    }
+
+    // ==========================================================================
     // ФИЛЬТРАЦИЯ И СОРТИРОВКА
     // ==========================================================================
     // Фильтруем вещи по категории и поисковому запросу
@@ -85,8 +108,9 @@ export default function WardrobePage() {
         // Проверка совпадения категории
         const matchesCategory = activeCategory === 'Все' || item.category === activeCategory
 
-        // Проверка совпадения поискового запроса (по названию или описанию)
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        // Проверка совпадения поискового запроса (по названию, описанию или имени файла)
+        const itemName = item.name || item.filename || ''
+        const matchesSearch = itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
 
         return matchesCategory && matchesSearch
@@ -99,21 +123,19 @@ export default function WardrobePage() {
 
     /**
      * Удаляет вещь из гардероба.
+     * Подтверждение удаления теперь в WardrobeCard.
      * 
      * @param {number} id - ID вещи для удаления
      */
     const handleDelete = async (id) => {
-        // Подтверждение удаления
-        if (confirm('Вы уверены, что хотите удалить эту вещь?')) {
-            try {
-                // DELETE /api/clothing/{id}
-                await api.delete(`/clothing/${id}`)
-                // Удаляем вещь из локального состояния
-                setItems(prev => prev.filter(item => item.id !== id))
-            } catch (error) {
-                console.error('Failed to delete item', error)
-                alert('Не удалось удалить вещь')
-            }
+        try {
+            // DELETE /api/clothing/{id}
+            await api.delete(`/clothing/${id}`)
+            // Удаляем вещь из локального состояния
+            setItems(prev => prev.filter(item => item.id !== id))
+        } catch (error) {
+            console.error('Failed to delete item', error)
+            alert('Не удалось удалить вещь')
         }
     }
 
@@ -134,7 +156,6 @@ export default function WardrobePage() {
                     sortOption={sortOption}
                     setSortOption={setSortOption}
                     itemCount={filteredItems.length}
-                    onUploadClick={() => setIsUploadModalOpen(true)}
                 />
 
                 {/* Фильтр по категориям (футболки, штаны, обувь и т.д.) */}
@@ -148,11 +169,15 @@ export default function WardrobePage() {
                     items={filteredItems}
                     loading={loading}
                     onDelete={handleDelete}
+                    onAddClick={handleGalleryClick}
                 />
             </main>
 
-            {/* FAB - Плавающая кнопка действия (создать образ) */}
-            <FAB />
+            {/* FAB - Плавающая кнопка действия (добавить вещь) */}
+            <WardrobeFAB
+                onCameraClick={handleCameraClick}
+                onGalleryClick={handleGalleryClick}
+            />
 
             {/* Мобильная навигация (для экранов < md) */}
             <MobileNav activePage="wardrobe" />
@@ -161,8 +186,26 @@ export default function WardrobePage() {
             <UploadModal
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
-                onUploadSuccess={() => {
-                    // После успешной загрузки обновляем список вещей
+                initialMode={uploadMode}
+                onUploadSuccess={(item) => {
+                    // После успешной загрузки открываем редактор
+                    setUploadedItem(item)
+                    setIsEditModalOpen(true)
+                }}
+            />
+
+            {/* Модальное окно редактирования вещи */}
+            <ItemEditModal
+                isOpen={isEditModalOpen}
+                item={uploadedItem}
+                onSave={() => {
+                    setIsEditModalOpen(false)
+                    setUploadedItem(null)
+                    fetchItems()
+                }}
+                onClose={() => {
+                    setIsEditModalOpen(false)
+                    setUploadedItem(null)
                     fetchItems()
                 }}
             />

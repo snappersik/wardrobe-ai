@@ -29,7 +29,18 @@ import {
     Layers,           // Слои
     PlusSquare,       // Плюс в квадрате
     Calendar,         // Календарь
-    User              // Пользователь
+    User,             // Пользователь
+    Image,            // Изображение (галерея)
+    Download,         // Скачать
+    Info,             // Информация
+    Inbox,            // Пустой inbox
+    AlertTriangle,    // Предупреждение
+    Save,             // Сохранить
+    Footprints,       // Следы (обувь)
+    RectangleVertical, // Прямоугольник (брюки)
+    HelpCircle,       // Вопрос (помощь)
+    ShoppingBag,      // Сумка
+    Pencil            // Карандаш (редактировать)
 } from 'lucide-react';
 
 // =============================================================================
@@ -42,7 +53,7 @@ const icons = {
     'arrow-left': ArrowLeft,
     'eye': Eye,
     'eye-off': EyeOff,
-    'wand-sparkles': Wand2,      // В Lucide нет WandSparkles, используем Wand2
+    'wand-sparkles': Wand2,
     'circle-play': PlayCircle,
     'check': Check,
     'sparkles': Sparkles,
@@ -59,7 +70,22 @@ const icons = {
     'layers': Layers,
     'plus-square': PlusSquare,
     'calendar': Calendar,
-    'user': User
+    'user': User,
+    'image': Image,
+    'download': Download,
+    'info': Info,
+    'inbox': Inbox,
+    'alert-triangle': AlertTriangle,
+    'save': Save,
+    'footprints': Footprints,
+    'trousers': RectangleVertical,
+    'dress': Shirt,
+    'jacket': Shirt,
+    'vest': Shirt,
+    'boot': Footprints,
+    'help-circle': HelpCircle,
+    'shopping-bag': ShoppingBag,
+    'pencil': Pencil
 };
 
 // =============================================================================

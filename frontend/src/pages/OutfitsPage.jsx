@@ -7,12 +7,14 @@
 
 // React хуки для работы с состоянием и эффектами
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 // Компоненты layout
 import UniversalHeader from '../components/layout/UniversalHeader'  // Шапка
 import MobileNav from '../components/layout/MobileNav'              // Мобильная навигация
-import FAB from '../components/wardrobe/FAB'                        // Плавающая кнопка
-import Icon from '../components/common/Icon';
+import OutfitsFAB from '../components/outfits/OutfitsFAB'           // Плавающая кнопка (новая)
+import Icon from '../components/common/Icon'
+import Toast from '../components/common/Toast'
 
 // API клиент
 import api from '../api/axios'
@@ -20,12 +22,16 @@ import api from '../api/axios'
 // Хук авторизации
 import { useAuth } from '../context/AuthContext'
 
+// Категории одежды для валидации
+import clothingCategories from '../data/clothing-categories.json'
+
 // =============================================================================
 // КОМПОНЕНТ СТРАНИЦЫ
 // =============================================================================
 export default function OutfitsPage() {
     // Данные текущего пользователя
     const { user } = useAuth()
+    const navigate = useNavigate()
 
     // ==========================================================================
     // СОСТОЯНИЯ
@@ -34,11 +40,20 @@ export default function OutfitsPage() {
     // Список образов (загружается с сервера)
     const [outfits, setOutfits] = useState([])
 
+    // Список вещей в гардеробе (для валидации)
+    const [wardrobeItems, setWardrobeItems] = useState([])
+
     // Флаг загрузки
     const [loading, setLoading] = useState(true)
 
     // Активный фильтр по поводу
     const [activeOccasion, setActiveOccasion] = useState('Все')
+
+    // Toast уведомление
+    const [toast, setToast] = useState(null)
+
+    // Модальное окно выбора создания
+    const [showChoiceModal, setShowChoiceModal] = useState(false)
 
     // Список возможных поводов для фильтрации
     const occasions = ['Все', 'Повседневный', 'Офис', 'Вечеринка', 'Спорт', 'Свидание']
@@ -48,30 +63,20 @@ export default function OutfitsPage() {
     // ==========================================================================
     useEffect(() => {
         fetchOutfits()
+        fetchWardrobeItems()
     }, [])
 
-    /**
-     * Загружает список образов с сервера.
-     * Преобразует данные бекенда в формат для UI.
-     */
     const fetchOutfits = async () => {
         try {
             setLoading(true)
-            // GET /api/outfits/my-outfits
             const { data } = await api.get('/outfits/my-outfits')
 
-            // Маппинг данных бекенда в формат UI
-            // Бекенд возвращает: { id, name, target_season, items, created_at }
             const mappedOutfits = data.map(outfit => ({
                 id: outfit.id,
                 name: outfit.name || 'Без названия',
-                // target_season используем как occasion (пока нет отдельного поля)
                 occasion: outfit.target_season || 'Повседневный',
-                // Количество вещей в образе
                 items: outfit.items ? outfit.items.length : '?',
-                // Заглушка для изображения (TODO: добавить реальное превью)
                 image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=300',
-                // Форматирование даты создания
                 date: new Date(outfit.created_at).toLocaleDateString()
             }))
 
@@ -83,10 +88,53 @@ export default function OutfitsPage() {
         }
     }
 
+    const fetchWardrobeItems = async () => {
+        try {
+            const { data } = await api.get('/clothing')
+            setWardrobeItems(data)
+        } catch (error) {
+            console.error('Failed to fetch wardrobe items', error)
+        }
+    }
+
+    // Проверка наличия минимального количества вещей
+    const getCategoryType = (categoryId) => {
+        const cat = clothingCategories.find(c => c.id === categoryId)
+        return cat?.type || 'other'
+    }
+
+    const checkMinimumItems = () => {
+        const hasTop = wardrobeItems.some(item => {
+            const type = getCategoryType(item.category)
+            return type === 'top' || type === 'full'
+        })
+
+        const hasBottom = wardrobeItems.some(item => {
+            const type = getCategoryType(item.category)
+            return type === 'bottom' || type === 'full'
+        })
+
+        return hasTop && hasBottom
+    }
+
+    const handleInsufficientItems = () => {
+        setToast({
+            message: 'Для создания образа нужна минимум 1 вещь верха и 1 вещь низа (или платье)',
+            type: 'warning'
+        })
+    }
+
+    const handleCreateClick = () => {
+        if (checkMinimumItems()) {
+            setShowChoiceModal(true)
+        } else {
+            handleInsufficientItems()
+        }
+    }
+
     // ==========================================================================
     // ФИЛЬТРАЦИЯ
     // ==========================================================================
-    // Фильтруем образы по выбранному поводу
     const filteredOutfits = outfits.filter(outfit =>
         activeOccasion === 'Все' || outfit.occasion === activeOccasion
     )
@@ -101,9 +149,7 @@ export default function OutfitsPage() {
 
             <main className="flex-grow container mx-auto max-w-7xl px-4 md:px-6 py-6">
 
-                {/* ========================================================= */}
                 {/* ЗАГОЛОВОК И СЧЁТЧИК */}
-                {/* ========================================================= */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 hidden md:block">Мои образы</h1>
@@ -111,10 +157,7 @@ export default function OutfitsPage() {
                     </div>
                 </div>
 
-                {/* ========================================================= */}
                 {/* ФИЛЬТР ПО ПОВОДАМ */}
-                {/* ========================================================= */}
-                {/* Горизонтальный скролл на мобильных устройствах */}
                 <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
                     <div className="flex gap-2">
                         {occasions.map(occasion => (
@@ -129,11 +172,8 @@ export default function OutfitsPage() {
                     </div>
                 </div>
 
-                {/* ========================================================= */}
-                {/* КОНТЕНТ: Загрузка / Пустое состояние / Сетка образов */}
-                {/* ========================================================= */}
+                {/* КОНТЕНТ */}
                 {loading ? (
-                    // Скелетон загрузки
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3].map(n => (
                             <div key={n} className="bg-white rounded-2xl p-4 h-80 animate-pulse">
@@ -144,29 +184,29 @@ export default function OutfitsPage() {
                         ))}
                     </div>
                 ) : filteredOutfits.length === 0 ? (
-                    // Пустое состояние - нет образов
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="w-48 h-48 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                             <Icon name="layers" size={96} className="text-gray-300" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Нет сохранённых образов</h3>
-                        <p className="text-gray-500 max-w-xs mb-8">Создайте свой первый образ с помощью AI генератора</p>
-                        <button className="btn btn-primary px-8">Создать образ</button>
+                        <p className="text-gray-500 max-w-xs mb-8">Создайте свой первый образ вручную или с помощью AI генератора</p>
+                        <button
+                            onClick={handleCreateClick}
+                            className="btn btn-primary px-8"
+                        >
+                            Создать образ
+                        </button>
                     </div>
                 ) : (
-                    // Сетка карточек образов
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 md:pb-0">
                         {filteredOutfits.map(outfit => (
                             <div key={outfit.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 card-hover">
-                                {/* Изображение образа */}
                                 <div className="relative h-48 bg-gray-100">
                                     <img src={outfit.image} alt={outfit.name} className="w-full h-full object-cover" />
-                                    {/* Бейдж с поводом */}
                                     <div className="absolute top-3 right-3 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium">
                                         {outfit.occasion}
                                     </div>
                                 </div>
-                                {/* Информация об образе */}
                                 <div className="p-4">
                                     <h3 className="font-bold text-gray-900 mb-1">{outfit.name}</h3>
                                     <p className="text-sm text-gray-500">{outfit.items} вещей</p>
@@ -178,10 +218,57 @@ export default function OutfitsPage() {
             </main>
 
             {/* Плавающая кнопка действия */}
-            <FAB />
+            <OutfitsFAB
+                wardrobeItems={wardrobeItems}
+                onInsufficientItems={handleInsufficientItems}
+            />
 
             {/* Мобильная навигация */}
             <MobileNav activePage="outfits" />
+
+            {/* Модалка выбора типа создания */}
+            {showChoiceModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold text-center mb-6">Как создать образ?</h2>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => { setShowChoiceModal(false); navigate('/outfits/create'); }}
+                                className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                            >
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow">
+                                    <Icon name="shirt" size={24} className="text-gray-700" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-gray-900">Вручную</p>
+                                    <p className="text-sm text-gray-500">Соберите образ сами</p>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => { setShowChoiceModal(false); navigate('/generator'); }}
+                                className="w-full flex items-center gap-4 p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+                            >
+                                <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow">
+                                    <Icon name="wand-sparkles" size={24} className="text-white" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-gray-900">AI Генератор</p>
+                                    <p className="text-sm text-gray-500">ИИ подберёт образ</p>
+                                </div>
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setShowChoiceModal(false)}
+                            className="w-full mt-4 text-gray-500 text-sm hover:text-gray-700"
+                        >
+                            Отмена
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast уведомление */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     )
 }

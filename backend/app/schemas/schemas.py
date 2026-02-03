@@ -32,13 +32,13 @@ class UserCreate(BaseModel):
         email: Email адрес (обязательный, валидация формата)
         password: Пароль в открытом виде (будет захеширован)
         full_name: Полное имя (опционально)
-        city: Город (по умолчанию Moscow)
+        city: Город (по умолчанию Москва)
     """
     username: str                           # Логин пользователя
     email: EmailStr                         # Email с валидацией формата
     password: str                           # Пароль (хешируется в сервисе)
     full_name: Optional[str] = None         # Полное имя (опционально)
-    city: Optional[str] = "Moscow"          # Город по умолчанию
+    city: Optional[str] = "Москва"          # Город по умолчанию
 
 
 class UserLogin(BaseModel):
@@ -87,6 +87,7 @@ class UserResponse(BaseModel):
     full_name: Optional[str] = None         # Полное имя
     city: str                               # Город пользователя
     role: str                               # Роль (user, admin, premium)
+    avatar_path: Optional[str] = None       # Путь к аватарке
     created_at: datetime                    # Дата регистрации
     
     class Config:
@@ -120,7 +121,7 @@ class ClothingItemResponse(BaseModel):
     """
     Схема ОТВЕТА с данными вещи.
     
-    Возвращается из: GET /api/clothing/my-items, POST /api/clothing/upload
+    Возвращается из: GET /api/clothing, POST /api/clothing/upload
     
     Атрибуты:
         id: ID вещи
@@ -148,6 +149,18 @@ class ClothingItemResponse(BaseModel):
         # Поддержка SQLAlchemy ORM моделей
         from_attributes = True
 
+
+class ClothingItemUpdate(BaseModel):
+    """
+    Схема для ОБНОВЛЕНИЯ вещи.
+    
+    Используется в: PUT /api/clothing/{id}
+    """
+    name: Optional[str] = None              # Название
+    category: Optional[str] = None          # Категория
+    color: Optional[str] = None             # Цвет
+    season: Optional[str] = None            # Сезон
+    style: Optional[str] = None             # Стиль
 
 # =============================================================================
 # СХЕМЫ ОБРАЗОВ (Outfit Schemas)

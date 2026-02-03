@@ -1,143 +1,377 @@
-// AI генератор образов - выбор параметров и генерация outfit
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
-import Icon from '../components/common/Icon';
+import { useAuth } from '../context/AuthContext'
+import api from '../api/axios'
+import Icon from '../components/common/Icon'
 
-export default function GeneratorPage() {
-    const [occasion, setOccasion] = useState('')       // Выбранный повод
-    const [weather, setWeather] = useState('warm')    // Погода
-    const [style, setStyle] = useState('casual')      // Стиль
+/**
+ * GeneratorPage - AI Генератор образов с Tinder-style свайп интерфейсом
+ * 
+ * 3 состояния:
+ * 1. conditions - выбор условий (повод, погода)
+ * 2. swipe - просмотр и оценка сгенерированных образов
+ * 3. results - итоги сессии
+ */
+const GeneratorPage = () => {
+    const { user } = useAuth()
+
+    // Текущее состояние страницы
+    const [stage, setStage] = useState('conditions') // conditions | swipe | results
+
+    // Условия генерации
+    const [occasion, setOccasion] = useState('casual')
+    const [weatherCategory, setWeatherCategory] = useState('warm')
+    const [weather, setWeather] = useState(null)
+
+    // Сгенерированные образы
+    const [outfits, setOutfits] = useState([])
+    const [currentIndex, setCurrentIndex] = useState(0)
+
+    // Статистика сессии
+    const [stats, setStats] = useState({ saved: 0, favorited: 0, skipped: 0 })
+
+    // UI состояния
     const [generating, setGenerating] = useState(false)
-    const [result, setResult] = useState(null)        // Результат генерации
+    const [swipeDirection, setSwipeDirection] = useState(null)
 
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: false
+    // Загрузка погоды при монтировании
+    useEffect(() => {
+        fetchWeather()
+    }, [])
+
+    const fetchWeather = async () => {
+        try {
+            const { data } = await api.get('/outfits/weather')
+            setWeather(data)
+            setWeatherCategory(data.category || 'warm')
+        } catch (error) {
+            console.log('Weather not available')
+        }
     }
 
+    // Генерация образов
+    const handleGenerate = async () => {
+        setGenerating(true)
+        try {
+            const { data } = await api.post(`/outfits/generate?occasion=${occasion}&weather_category=${weatherCategory}&count=5`)
+            setOutfits(data)
+            setCurrentIndex(0)
+            setStats({ saved: 0, favorited: 0, skipped: 0 })
+            setStage('swipe')
+        } catch (error) {
+            console.error('Generation failed:', error)
+            alert(error.response?.data?.detail || 'Ошибка генерации')
+        } finally {
+            setGenerating(false)
+        }
+    }
+
+    // Обработка действия над образом
+    const handleFeedback = async (action) => {
+        const currentOutfit = outfits[currentIndex]
+        if (!currentOutfit) return
+
+        // Анимация свайпа
+        if (action === 'like' || action === 'save' || action === 'favorite') {
+            setSwipeDirection('right')
+        } else {
+            setSwipeDirection('left')
+        }
+
+        // Отправляем feedback на сервер
+        try {
+            await api.post('/outfits/feedback', {
+                action,
+                item_ids: currentOutfit.items.map(i => i.id),
+                occasion,
+                weather: weatherCategory
+            })
+
+            // Обновляем статистику
+            setStats(prev => ({
+                ...prev,
+                saved: prev.saved + (action === 'save' ? 1 : 0),
+                favorited: prev.favorited + (action === 'favorite' ? 1 : 0),
+                skipped: prev.skipped + (action === 'skip' || action === 'dislike' ? 1 : 0)
+            }))
+        } catch (error) {
+            console.error('Feedback failed:', error)
+        }
+
+        // Переход к следующему образу
+        setTimeout(() => {
+            setSwipeDirection(null)
+            if (currentIndex + 1 >= outfits.length) {
+                setStage('results')
+            } else {
+                setCurrentIndex(prev => prev + 1)
+            }
+        }, 300)
+    }
+
+    // Сброс для новой сессии
+    const handleNewSession = () => {
+        setStage('conditions')
+        setOutfits([])
+        setCurrentIndex(0)
+    }
+
+    // Опции выбора
     const occasions = [
+        { id: 'casual', label: 'Прогулка', icon: 'sun' },
         { id: 'work', label: 'Работа', icon: 'briefcase' },
-        { id: 'casual', label: 'Прогулка', icon: 'coffee' },
-        { id: 'party', label: 'Вечеринка', icon: 'sparkles' },
+        { id: 'party', label: 'Вечеринка', icon: 'music' },
         { id: 'date', label: 'Свидание', icon: 'heart' },
-        { id: 'sport', label: 'Спорт', icon: 'dumbbell' },
+        { id: 'sport', label: 'Спорт', icon: 'activity' }
     ]
 
-    // Имитация генерации образа (заглушка)
-    const handleGenerate = () => {
-        setGenerating(true)
-        setTimeout(() => {
-            setResult({
-                items: [
-                    { name: 'Белая рубашка', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7YZQzpkJX0ATwUHDQ9tX6gl1-1ygoiSqR2Q&s' },
-                    { name: 'Джинсы прямые', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgL6dGb5I_J8wg-c1aJIAdUH9SAQgA8liwbg&s' },
-                    { name: 'Кеды белые', image: 'https://eobuv.ru/upload/resize_cache/webp/iblock/840/zyaywcj3hntedcerhk7dwz9lzaubxfn0.webp' },
-                ]
-            })
-            setGenerating(false)
-        }, 2000)
-    }
+    const weatherOptions = [
+        { id: 'cold', label: 'Холодно', icon: 'cloud-snow', color: 'from-blue-400 to-blue-600' },
+        { id: 'cool', label: 'Прохладно', icon: 'cloud', color: 'from-cyan-400 to-blue-500' },
+        { id: 'warm', label: 'Тепло', icon: 'sun', color: 'from-yellow-400 to-orange-500' },
+        { id: 'hot', label: 'Жарко', icon: 'thermometer', color: 'from-orange-400 to-red-500' }
+    ]
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <UniversalHeader activePage="generator" user={user} />
 
-            <main className="flex-grow container mx-auto max-w-4xl px-4 md:px-6 py-6">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Генератор образов</h1>
-                    <p className="text-gray-500">Выберите параметры и получите идеальный образ</p>
-                </div>
-
-                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
-                    {/* Выбор повода */}
-                    <div className="mb-8">
-                        <h3 className="font-bold text-gray-900 mb-4">Куда вы собираетесь?</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            {occasions.map(occ => (
-                                <button
-                                    key={occ.id}
-                                    onClick={() => setOccasion(occ.id)}
-                                    className={`p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${occasion === occ.id
-                                        ? 'border-primary bg-pink-50 text-primary'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <Icon name={occ.icon} size={20} />
-                                    <span className="text-sm font-medium">{occ.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Выбор погоды */}
-                    <div className="mb-8">
-                        <h3 className="font-bold text-gray-900 mb-4">Погода</h3>
-                        <div className="flex gap-3">
-                            {['cold', 'cool', 'warm', 'hot'].map(w => (
-                                <button
-                                    key={w}
-                                    onClick={() => setWeather(w)}
-                                    className={`px-6 py-3 rounded-xl border-2 font-medium transition-all ${weather === w
-                                        ? 'border-primary bg-pink-50 text-primary'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    {w === 'cold' && '❄️ Холодно'}
-                                    {w === 'cool' && '🌤️ Прохладно'}
-                                    {w === 'warm' && '☀️ Тепло'}
-                                    {w === 'hot' && '🔥 Жарко'}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleGenerate}
-                        disabled={generating || !occasion}
-                        className="w-full btn btn-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {generating ? (
-                            <div className="flex items-center gap-3">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                                Генерируем образ...
-                            </div>
-                        ) : (
-                            <>
-                                <div className="mr-2">
-                                    <Icon name="wand-sparkles" size={20} />
-                                </div>
-                                Создать образ
-                            </>
-                        )}
-                    </button>
-                </div>
-
-                {/* Результат генерации */}
-                {result && (
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-900 mb-6 text-center">Ваш образ готов!</h3>
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                            {result.items.map((item, idx) => (
-                                <div key={idx} className="text-center">
-                                    <div className="aspect-square rounded-xl overflow-hidden mb-2 bg-gray-100">
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+            <main className="flex-grow container mx-auto max-w-2xl px-4 py-6">
+                {/* STAGE 1: CONDITIONS */}
+                {stage === 'conditions' && (
+                    <div className="space-y-8">
+                        {/* Weather Card */}
+                        {weather && (
+                            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl p-6 text-white shadow-lg">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-white/80 text-sm">Погода в {weather.city}</p>
+                                        <p className="text-3xl font-bold">{weather.temp}°C</p>
+                                        <p className="text-white/80 capitalize">{weather.description}</p>
                                     </div>
-                                    <p className="text-sm font-medium text-gray-700">{item.name}</p>
+                                    <div className="text-6xl">
+                                        {weather.icon?.includes('01') ? '☀️' :
+                                            weather.icon?.includes('02') ? '⛅' :
+                                                weather.icon?.includes('03') ? '☁️' :
+                                                    weather.icon?.includes('04') ? '☁️' :
+                                                        weather.icon?.includes('09') ? '🌧️' :
+                                                            weather.icon?.includes('10') ? '🌦️' :
+                                                                weather.icon?.includes('11') ? '⛈️' :
+                                                                    weather.icon?.includes('13') ? '❄️' : '🌤️'}
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
+                        )}
+
+                        {/* Occasion Selection */}
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Куда собираетесь?</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {occasions.map(o => (
+                                    <button
+                                        key={o.id}
+                                        onClick={() => setOccasion(o.id)}
+                                        className={`p-4 rounded-xl border-2 transition-all ${occasion === o.id
+                                                ? 'border-primary bg-primary/5 shadow-md'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <Icon name={o.icon} size={24} className={occasion === o.id ? 'text-primary' : 'text-gray-400'} />
+                                        <p className={`mt-2 font-medium ${occasion === o.id ? 'text-primary' : 'text-gray-700'}`}>
+                                            {o.label}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex gap-4">
-                            <button className="flex-1 btn btn-outline py-3">Сохранить</button>
-                            <button onClick={handleGenerate} className="flex-1 btn btn-primary py-3">Ещё вариант</button>
+
+                        {/* Weather Selection */}
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Погодные условия</h2>
+                            <div className="flex gap-3 overflow-x-auto pb-2">
+                                {weatherOptions.map(w => (
+                                    <button
+                                        key={w.id}
+                                        onClick={() => setWeatherCategory(w.id)}
+                                        className={`flex-shrink-0 px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${weatherCategory === w.id
+                                                ? `bg-gradient-to-r ${w.color} text-white shadow-lg`
+                                                : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <Icon name={w.icon} size={18} />
+                                        {w.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Generate Button */}
+                        <button
+                            onClick={handleGenerate}
+                            disabled={generating}
+                            className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-purple-500 text-white font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                        >
+                            {generating ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                                    Генерирую...
+                                </span>
+                            ) : (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Icon name="sparkles" size={20} />
+                                    Создать образы
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                )}
+
+                {/* STAGE 2: SWIPE */}
+                {stage === 'swipe' && outfits.length > 0 && (
+                    <div className="space-y-6">
+                        {/* Progress */}
+                        <div className="flex items-center justify-between">
+                            <button onClick={() => setStage('conditions')} className="text-gray-500 hover:text-gray-700">
+                                <Icon name="x" size={24} />
+                            </button>
+                            <span className="text-sm font-medium text-gray-500">
+                                {currentIndex + 1} из {outfits.length}
+                            </span>
+                            <div className="w-6" /> {/* Spacer */}
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-300"
+                                style={{ width: `${((currentIndex + 1) / outfits.length) * 100}%` }}
+                            />
+                        </div>
+
+                        {/* Outfit Card */}
+                        <div className={`bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 transform ${swipeDirection === 'left' ? '-translate-x-full rotate-[-15deg] opacity-0' :
+                                swipeDirection === 'right' ? 'translate-x-full rotate-[15deg] opacity-0' : ''
+                            }`}>
+                            {/* Items Grid */}
+                            <div className="p-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    {outfits[currentIndex]?.items.map((item, idx) => (
+                                        <div key={idx} className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+                                            <img
+                                                src={`http://localhost:8000/${item.image_path}`}
+                                                alt={item.filename}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Outfit Info */}
+                                <div className="mt-4 text-center">
+                                    <h3 className="text-xl font-bold text-gray-900">
+                                        {outfits[currentIndex]?.name}
+                                    </h3>
+                                    <p className="text-gray-500 text-sm mt-1">
+                                        {Math.round(outfits[currentIndex]?.score * 100)}% соответствие
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-center gap-4 py-4">
+                            {/* Dislike */}
+                            <button
+                                onClick={() => handleFeedback('dislike')}
+                                className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-red-500 hover:bg-red-50 transition-all hover:scale-110"
+                            >
+                                <Icon name="thumbs-down" size={24} />
+                            </button>
+
+                            {/* Like (for AI training) */}
+                            <button
+                                onClick={() => handleFeedback('like')}
+                                className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-green-500 hover:bg-green-50 transition-all hover:scale-110"
+                            >
+                                <Icon name="thumbs-up" size={24} />
+                            </button>
+
+                            {/* Favorite */}
+                            <button
+                                onClick={() => handleFeedback('favorite')}
+                                className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-red-500 shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all hover:scale-110"
+                            >
+                                <Icon name="heart" size={28} />
+                            </button>
+
+                            {/* Save */}
+                            <button
+                                onClick={() => handleFeedback('save')}
+                                className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-500 hover:bg-blue-50 transition-all hover:scale-110"
+                            >
+                                <Icon name="bookmark" size={24} />
+                            </button>
+                        </div>
+
+                        {/* Button Labels */}
+                        <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+                            <span className="w-14 text-center">Не то</span>
+                            <span className="w-14 text-center">Нравится</span>
+                            <span className="w-16 text-center">Избранное</span>
+                            <span className="w-14 text-center">Сохранить</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* STAGE 3: RESULTS */}
+                {stage === 'results' && (
+                    <div className="text-center space-y-8 py-12">
+                        {/* Success Icon */}
+                        <div className="w-24 h-24 mx-auto bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                            <Icon name="check" size={48} className="text-white" />
+                        </div>
+
+                        <h2 className="text-2xl font-bold text-gray-900">Готово!</h2>
+
+                        {/* Stats */}
+                        <div className="flex justify-center gap-6">
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-blue-500">{stats.saved}</div>
+                                <div className="text-sm text-gray-500">Сохранено</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-pink-500">{stats.favorited}</div>
+                                <div className="text-sm text-gray-500">В избранном</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-gray-400">{stats.skipped}</div>
+                                <div className="text-sm text-gray-500">Пропущено</div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3 max-w-xs mx-auto">
+                            <button
+                                onClick={handleNewSession}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-purple-500 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                            >
+                                Сгенерировать ещё
+                            </button>
+                            <button
+                                onClick={() => window.location.href = '/outfits'}
+                                className="w-full py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-all"
+                            >
+                                Перейти в образы
+                            </button>
                         </div>
                     </div>
                 )}
             </main>
 
-            <MobileNav activePage="create" />
+            <MobileNav activePage="generator" />
         </div>
     )
 }
+
+export default GeneratorPage

@@ -473,3 +473,264 @@ async def delete_outfit(
     await db.commit()
     
     return {"message": "Outfit deleted"}
+
+
+# =============================================================================
+# ЭНДПОИНТ: ПОГОДА ДЛЯ ПОЛЬЗОВАТЕЛЯ
+# =============================================================================
+from app.services.weather import get_weather, get_weather_by_coords, reverse_geocode, temp_to_category, category_to_russian
+
+@router.get("/weather")
+async def get_current_weather(
+    current_user: models.User = Depends(services.get_current_user)
+):
+    """
+    Получает текущую погоду для города пользователя.
+    """
+    weather = await get_weather(current_user.city or "Москва")
+    return weather
+
+
+@router.get("/weather/by-coords")
+async def get_weather_by_coordinates(
+    lat: float,
+    lon: float
+):
+    """
+    Получает погоду по координатам (для геолокации браузера).
+    Не требует авторизации для первичного определения города.
+    """
+    weather = await get_weather_by_coords(lat, lon)
+    
+    # Получаем название города по координатам
+    city = await reverse_geocode(lat, lon)
+    weather["city"] = city or "Неизвестный город"
+    
+    return weather
+
+
+@router.get("/weather/city-by-coords")
+async def get_city_by_coordinates(
+    lat: float,
+    lon: float
+):
+    """
+    Определяет название города по координатам.
+    Используется для автоматического определения города пользователя.
+    """
+    city = await reverse_geocode(lat, lon)
+    return {
+        "city": city or "Москва",
+        "lat": lat,
+        "lon": lon
+    }
+
+
+# =============================================================================
+# ЭНДПОИНТ: AI ГЕНЕРАЦИЯ ОБРАЗОВ
+# =============================================================================
+import random
+
+@router.post("/generate")
+async def generate_outfits(
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db),
+    occasion: str = "casual",
+    weather_category: str = "warm",
+    count: int = 3
+):
+    """
+    Генерирует случайные образы из гардероба пользователя.
+    
+    Алгоритм:
+    1. Получаем все вещи пользователя
+    2. Группируем по типам (top, bottom, shoes)
+    3. Создаём случайные комбинации
+    4. Возвращаем несохранённые образы
+    
+    Args:
+        occasion: Повод (casual, work, party, date, sport)
+        weather_category: Погода (cold, cool, warm, hot)
+        count: Количество образов (1-5)
+    """
+    # Получаем все вещи пользователя
+    result = await db.execute(
+        select(models.ClothingItem).filter(
+            models.ClothingItem.owner_id == current_user.id
+        )
+    )
+    all_items = result.scalars().all()
+    
+    if len(all_items) < 2:
+        raise HTTPException(
+            status_code=400, 
+            detail="Недостаточно вещей в гардеробе. Загрузите минимум 2 вещи."
+        )
+    
+    # Группируем по типам
+    tops = [i for i in all_items if i.category in ["t-shirt", "shirt", "pullover", "coat"]]
+    bottoms = [i for i in all_items if i.category in ["trouser", "dress"]]
+    shoes = [i for i in all_items if i.category in ["sneaker", "sandal", "ankle-boot"]]
+    accessories = [i for i in all_items if i.category == "bag"]
+    
+    # Если нет разделения, используем все вещи
+    if not tops:
+        tops = all_items
+    if not bottoms:
+        bottoms = all_items
+    
+    generated_outfits = []
+    count = min(count, 5)  # Максимум 5
+    
+    for i in range(count):
+        outfit_items = []
+        
+        # Выбираем верх
+        if tops:
+            outfit_items.append(random.choice(tops))
+        
+        # Выбираем низ (если это не платье)
+        if bottoms and (not outfit_items or outfit_items[0].category != "dress"):
+            outfit_items.append(random.choice(bottoms))
+        
+        # Добавляем обувь если есть
+        if shoes:
+            outfit_items.append(random.choice(shoes))
+        
+        # Иногда добавляем аксессуар
+        if accessories and random.random() > 0.5:
+            outfit_items.append(random.choice(accessories))
+        
+        # Формируем ответ (без сохранения в БД)
+        generated_outfits.append({
+            "id": None,  # Не сохранён
+            "name": f"AI образ #{i + 1}",
+            "occasion": occasion,
+            "weather": weather_category,
+            "items": [
+                {
+                    "id": item.id,
+                    "filename": item.filename,
+                    "image_path": item.image_path,
+                    "category": item.category,
+                    "color": item.color
+                }
+                for item in outfit_items
+            ],
+            "score": round(random.uniform(0.7, 0.99), 2)  # Фейковый скор
+        })
+    
+    return generated_outfits
+
+
+# =============================================================================
+# ЭНДПОИНТ: ОБРАТНАЯ СВЯЗЬ (ЛАЙК/ДИЗЛАЙК/ИЗБРАННОЕ/СОХРАНЕНИЕ)
+# =============================================================================
+from pydantic import BaseModel
+
+class OutfitFeedback(BaseModel):
+    action: str  # "like", "dislike", "favorite", "save", "skip"
+    item_ids: List[int]  # ID вещей в образе
+    occasion: str = "casual"
+    weather: str = "warm"
+
+@router.post("/feedback")
+async def submit_feedback(
+    feedback: OutfitFeedback,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Обрабатывает обратную связь по сгенерированному образу.
+    
+    Actions:
+    - like: Обучение AI (хороший образ)
+    - dislike: Обучение AI (плохой образ)
+    - favorite: Сохранить в избранное
+    - save: Просто сохранить образ
+    - skip: Пропустить (ничего не делать)
+    """
+    if feedback.action == "skip":
+        return {"message": "Skipped", "saved": False}
+    
+    # Для like/dislike - обновляем предпочтения (TODO: таблица preferences)
+    if feedback.action in ["like", "dislike"]:
+        # TODO: Записать в user_preferences для обучения AI
+        print(f"📊 Feedback: {feedback.action} for items {feedback.item_ids}")
+        return {"message": f"Feedback '{feedback.action}' recorded", "saved": False}
+    
+    # Для favorite/save - создаём образ в БД
+    if feedback.action in ["favorite", "save"]:
+        # Проверяем что все вещи принадлежат пользователю
+        result = await db.execute(
+            select(models.ClothingItem).filter(
+                models.ClothingItem.id.in_(feedback.item_ids),
+                models.ClothingItem.owner_id == current_user.id
+            )
+        )
+        items = result.scalars().all()
+        
+        if len(items) != len(feedback.item_ids):
+            raise HTTPException(status_code=400, detail="Some items not found")
+        
+        # Создаём образ
+        new_outfit = models.Outfit(
+            owner_id=current_user.id,
+            name=f"AI: {feedback.occasion}",
+            target_season=None,
+            target_weather=feedback.weather,
+            created_by_ai=True,
+            is_favorite=(feedback.action == "favorite")
+        )
+        
+        db.add(new_outfit)
+        await db.commit()
+        await db.refresh(new_outfit)
+        
+        # Связываем с вещами
+        for item_id in feedback.item_ids:
+            outfit_item = models.OutfitItem(
+                outfit_id=new_outfit.id,
+                item_id=item_id
+            )
+            db.add(outfit_item)
+        
+        await db.commit()
+        
+        return {
+            "message": f"Outfit {'favorited' if feedback.action == 'favorite' else 'saved'}",
+            "saved": True,
+            "outfit_id": new_outfit.id
+        }
+    
+    return {"message": "Unknown action", "saved": False}
+
+
+# =============================================================================
+# ЭНДПОИНТ: ПЕРЕКЛЮЧЕНИЕ ИЗБРАННОГО
+# =============================================================================
+@router.post("/{outfit_id}/toggle-favorite")
+async def toggle_favorite(
+    outfit_id: int,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Переключает статус избранного для образа."""
+    result = await db.execute(
+        select(models.Outfit).filter(
+            models.Outfit.id == outfit_id,
+            models.Outfit.owner_id == current_user.id
+        )
+    )
+    outfit = result.scalar_one_or_none()
+    
+    if not outfit:
+        raise HTTPException(status_code=404, detail="Outfit not found")
+    
+    outfit.is_favorite = not outfit.is_favorite
+    await db.commit()
+    
+    return {
+        "outfit_id": outfit_id,
+        "is_favorite": outfit.is_favorite
+    }

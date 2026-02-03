@@ -32,6 +32,9 @@ import GeneratorPage from './pages/GeneratorPage'     // AI генератор �
 import CalendarPage from './pages/CalendarPage'       // Календарь нарядов
 import ProfilePage from './pages/ProfilePage'         // Профиль пользователя
 
+// Layout для авторизованных страниц (с popup города)
+import AuthLayout from './components/layout/AuthLayout'
+
 // Админ-панель (требуют роль admin)
 import AdminDashboardPage from './pages/admin/AdminDashboardPage' // Дашборд админа
 import AdminUsersPage from './pages/admin/AdminUsersPage'         // Управление пользователями
@@ -62,13 +65,14 @@ export default function App() {
 
                 {/* ============================================= */}
                 {/* ЗАЩИЩЁННЫЕ МАРШРУТЫ (требуют авторизации) */}
+                {/* AuthLayout добавляет popup подтверждения города */}
                 {/* ============================================= */}
-                <Route path="/wardrobe" element={<ProtectedRoute><WardrobePage /></ProtectedRoute>} />
-                <Route path="/outfits" element={<ProtectedRoute><OutfitsPage /></ProtectedRoute>} />
-                <Route path="/outfits/create" element={<ProtectedRoute><OutfitCreatePage /></ProtectedRoute>} />
-                <Route path="/generator" element={<ProtectedRoute><GeneratorPage /></ProtectedRoute>} />
-                <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                <Route path="/wardrobe" element={<ProtectedRoute><AuthLayout><WardrobePage /></AuthLayout></ProtectedRoute>} />
+                <Route path="/outfits" element={<ProtectedRoute><AuthLayout><OutfitsPage /></AuthLayout></ProtectedRoute>} />
+                <Route path="/outfits/create" element={<ProtectedRoute><AuthLayout><OutfitCreatePage /></AuthLayout></ProtectedRoute>} />
+                <Route path="/generator" element={<ProtectedRoute><AuthLayout><GeneratorPage /></AuthLayout></ProtectedRoute>} />
+                <Route path="/calendar" element={<ProtectedRoute><AuthLayout><CalendarPage /></AuthLayout></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><AuthLayout><ProfilePage /></AuthLayout></ProtectedRoute>} />
 
                 {/* ============================================= */}
                 {/* АДМИН МАРШРУТЫ (требуют роль admin) */}

@@ -2,7 +2,8 @@
 // ЗАГОЛОВОК ГАРДЕРОБА (WardrobeHeader.jsx)
 // =============================================================================
 // Верхняя часть страницы гардероба.
-// Содержит заголовок, счётчик вещей, поле поиска и кнопку добавления.
+// Содержит заголовок, счётчик вещей и поле поиска.
+// Кнопка "Добавить" удалена - теперь используется FAB
 // =============================================================================
 
 // Компонент иконок
@@ -12,16 +13,15 @@ import Icon from '../common/Icon'
 // КОМПОНЕНТ ЗАГОЛОВКА
 // =============================================================================
 /**
- * Заголовок страницы гардероба с поиском и действиями.
+ * Заголовок страницы гардероба с поиском.
  * 
  * @param {string} searchQuery - Текущий поисковый запрос
  * @param {function} setSearchQuery - Функция для обновления поискового запроса
  * @param {string} sortOption - Текущая опция сортировки
  * @param {function} setSortOption - Функция для изменения сортировки
  * @param {number} itemCount - Количество вещей (для отображения в счётчике)
- * @param {function} onUploadClick - Callback при клике на кнопку "Добавить"
  */
-export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption, setSortOption, itemCount, onUploadClick }) {
+export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption, setSortOption, itemCount }) {
     return (
         // Флекс-контейнер: колонка на мобильных, ряд на десктопе
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -37,23 +37,9 @@ export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption
             </div>
 
             {/* ============================================================= */}
-            {/* ДЕЙСТВИЯ И ПОИСК */}
+            {/* ПОИСК И ФИЛЬТРЫ */}
             {/* ============================================================= */}
             <div className="flex gap-3 w-full md:w-auto">
-
-                {/* --------------------------------------------------------- */}
-                {/* КНОПКА "ДОБАВИТЬ" (только десктоп) */}
-                {/* --------------------------------------------------------- */}
-                <button
-                    onClick={onUploadClick}
-                    className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl font-medium shadow-lg shadow-pink-200/50 hover:shadow-xl hover:-translate-y-0.5 transition-all"
-                >
-                    {/* Иконка плюса */}
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Добавить
-                </button>
 
                 {/* --------------------------------------------------------- */}
                 {/* ПОЛЕ ПОИСКА */}
@@ -75,7 +61,6 @@ export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption
                 {/* --------------------------------------------------------- */}
                 {/* КНОПКА ФИЛЬТРОВ */}
                 {/* --------------------------------------------------------- */}
-                {/* TODO: Добавить функционал фильтрации */}
                 <button className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:border-primary hover:text-primary transition-colors">
                     <Icon name="sliders-horizontal" size={20} />
                 </button>
