@@ -25,7 +25,11 @@ import {
     Trash2,           // Корзина (удалить)
     X,                // Крестик (закрыть)
     Upload,           // Загрузка файла
-    Camera            // Камера
+    Camera,           // Камера
+    Layers,           // Слои
+    PlusSquare,       // Плюс в квадрате
+    Calendar,         // Календарь
+    User              // Пользователь
 } from 'lucide-react';
 
 // =============================================================================
@@ -51,7 +55,11 @@ const icons = {
     'trash': Trash2,
     'x': X,
     'upload': Upload,
-    'camera': Camera
+    'camera': Camera,
+    'layers': Layers,
+    'plus-square': PlusSquare,
+    'calendar': Calendar,
+    'user': User
 };
 
 // =============================================================================

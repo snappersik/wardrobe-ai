@@ -1,26 +1,17 @@
-# Виртуальное окружение Python
-.venv
-venv
-__pycache__
+# Игнорировать при сборке Docker (ускоряет COPY)
+__pycache__/
 *.pyc
 *.pyo
-
-# IDE
-.idea
-.vscode
-*.swp
-
-# Git
-.git
+.git/
 .gitignore
-
-# Логи и кэш
+.env
+.venv/
+venv/
+env/
+uploads/
 *.log
-.cache
-
-# Локальные файлы
-.env.local
-*.bak
-
-# Загруженные файлы (если не нужны в образе)
-# uploads/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/

@@ -74,6 +74,10 @@ app.include_router(outfits.router, prefix="/api")
 from app.api import admin
 app.include_router(admin.router, prefix="/api")
 
+# Роутер ML (обучение модели)
+from app.api import ml
+app.include_router(ml.router, prefix="/api")
+
 # =============================================================================
 # РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ (ЗАГРУЖЕННЫЕ ИЗОБРАЖЕНИЯ)
 # =============================================================================

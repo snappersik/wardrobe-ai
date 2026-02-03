@@ -71,6 +71,35 @@ services:
       retries: 5
 
   # ===========================================================================
+  # СЕРВИС 4: ML WORKER (TRAINING)
+  # ===========================================================================
+  # Отдельный сервис для долгого обучения моделей.
+  # Работает в фоне, чтобы не блокировать основной API.
+  ml_worker:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wardrobe_ml_worker
+    restart: always
+    # Запускаем скрипт воркера вместо веб-сервера
+    command: python -m app.ml.worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:12345@db:5432/wardrobe_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: wardrobe_ai
+      # Общие пути
+      ML_SHARED_PATH: /app/ml_shared
+    volumes:
+      # Доступ к загруженным фото (для обучения)
+      - ./backend/uploads:/app/uploads
+      # Общий том для моделей и датасетов
+      - ml_shared_data:/app/ml_shared
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ===========================================================================
   # СЕРВИС 2: BACKEND (FASTAPI + PYTHON)
   # ===========================================================================
   # Бекенд API на FastAPI - обрабатывает все HTTP-запросы от фронтенда:
@@ -116,10 +145,15 @@ services:
       
       # Путь для загрузки фотографий одежды
       UPLOADS_PATH: ./uploads
+
+      # Путь к общим ML данным
+      ML_SHARED_PATH: /app/ml_shared
     
     # Монтируем папку uploads для сохранения загруженных файлов
     volumes:
       - ./backend/uploads:/app/uploads
+      # Общий том для моделей
+      - ml_shared_data:/app/ml_shared
     
     # Зависимость: бекенд запустится только когда БД будет healthy
     depends_on:
@@ -138,3 +172,5 @@ volumes:
   postgres_data:
   # Том для данных MongoDB
   mongo_data:
+  # Том для общих ML данных (модели, датасеты)
+  ml_shared_data:

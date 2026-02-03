@@ -41,6 +41,14 @@ from app.services import services
 router = APIRouter(prefix="/clothing", tags=["Clothing"])
 
 
+# Импорт ML сервисов
+from app.ml.remover import get_remover
+from ultralytics import YOLO
+
+# Загружаем модель YOLO один раз при импорте (или можно в startup)
+# Используем предобученную на одежде модель или базовую n-версию
+yolo_model = YOLO("yolov8n.pt") 
+
 # =============================================================================
 # ЭНДПОИНТ: ЗАГРУЗКА ФОТО ОДЕЖДЫ
 # =============================================================================
@@ -55,67 +63,71 @@ async def upload_item(
     
     Алгоритм:
     1. Создаём папку uploads если её нет
-    2. Генерируем уникальное имя файла (UUID)
-    3. Сохраняем файл на диск
-    4. Создаём запись в базе данных
-    5. Записываем в лог аудита
-    6. Возвращаем данные о загруженной вещи
-    
-    TODO: Добавить YOLO распознавание категории и цвета
-    
-    Args:
-        file: Загружаемый файл изображения (JPEG, PNG)
-        current_user: Текущий авторизованный пользователь
-        db: Сессия базы данных
-    
-    Returns:
-        ClothingItemResponse: Данные о созданной вещи
-    
-    Пример запроса:
-        POST /api/clothing/upload
-        Content-Type: multipart/form-data
-        file: (binary image data)
+    2. Генерируем уникальное имя файла
+    3. Сохраняем временный файл
+    4. Распознаем вещь через YOLOv8
+    5. Удаляем фон через RemBG
+    6. Сохраняем итоговый PNG
+    7. Создаём запись в БД
     """
-    # Шаг 1: Создаём директорию для загрузок если её нет
+    # Шаг 1: Создаём директорию для загрузок
     upload_dir = "uploads"
     os.makedirs(upload_dir, exist_ok=True)
     
-    # Шаг 2: Генерируем уникальное имя файла
-    # UUID гарантирует что файлы не перезапишут друг друга
-    file_extension = os.path.splitext(file.filename)[1]  # Получаем расширение (.jpg, .png)
-    unique_filename = f"{uuid.uuid4()}{file_extension}"  # Например: abc123-def456.jpg
-    file_path = f"{upload_dir}/{unique_filename}"        # uploads/abc123-def456.jpg
+    # Шаг 2: Генерируем уникальное имя (UUID)
+    file_id = str(uuid.uuid4())
+    temp_path = f"{upload_dir}/temp_{file_id}_{file.filename}"
     
-    # Шаг 3: Сохраняем файл на диск
-    with open(file_path, "wb") as buffer:
+    # Шаг 3: Сохраняем временный файл для обработки
+    with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    # Шаг 4: Создаём запись в базе данных
-    # TODO: Интегрировать YOLO для автоматического распознавания одежды
-    new_item = models.ClothingItem(
-        owner_id=current_user.id,    # Владелец вещи
-        filename=file.filename,      # Оригинальное имя файла
-        image_path=file_path,        # Путь к сохранённому файлу
-        category="unknown",          # TODO: Распознать через YOLO
-        color="unknown"              # TODO: Распознать через YOLO
-    )
-    
-    # Добавляем в базу данных
-    db.add(new_item)
-    await db.commit()
-    await db.refresh(new_item)  # Получаем id и created_at
-    
-    # Шаг 5: Записываем в лог аудита
-    log = models.AuditLog(
-        user_id=current_user.id, 
-        action="upload_item",  # Тип действия: загрузка
-        details=f"Uploaded {file.filename}"
-    )
-    db.add(log)
-    await db.commit()
-    
-    # Шаг 6: Возвращаем данные о вещи
-    return new_item
+    try:
+        # Шаг 4: Распознавание через YOLOv8
+        results = yolo_model.predict(temp_path, imgsz=640, conf=0.25)
+        
+        category = "unknown"
+        if len(results) > 0 and len(results[0].boxes) > 0:
+            # Берем первый найденный объект с самой высокой уверенностью
+            top_box = results[0].boxes[0]
+            class_id = int(top_box.cls[0])
+            category = yolo_model.names[class_id]
+        
+        # Шаг 5: Удаление фона через RemBG
+        final_filename = f"{file_id}.png" # Всегда PNG для прозрачности
+        final_path = f"{upload_dir}/{final_filename}"
+        
+        remover = get_remover()
+        remover.remove_background(temp_path, final_path)
+        
+        # Шаг 6: Создаём запись в базе данных
+        new_item = models.ClothingItem(
+            owner_id=current_user.id,
+            filename=file.filename,
+            image_path=final_path,
+            category=category,
+            color="auto-detected" # TODO: Добавить палитру цветов
+        )
+        
+        db.add(new_item)
+        await db.commit()
+        await db.refresh(new_item)
+        
+        # Лог аудита
+        log = models.AuditLog(
+            user_id=current_user.id, 
+            action="upload_item",
+            details=f"Uploaded and processed {file.filename} (detected: {category})"
+        )
+        db.add(log)
+        await db.commit()
+        
+        return new_item
+
+    finally:
+        # Удаляем временный файл
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 # =============================================================================

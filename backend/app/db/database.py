@@ -37,12 +37,10 @@ class Settings(BaseSettings):
     """Настройки приложения, загружаемые из переменных окружения (.env)"""
     
     # URL подключения к базе данных PostgreSQL
-    # Формат: postgresql+asyncpg://user:password@host:port/database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:4242/wardrobe_ai"
     
     # Секретный ключ для подписи JWT токенов (хеширование)
-    # ВАЖНО: Замените в продакшене на безопасный случайный ключ!
-    SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
+    SECRET_KEY: str = "Hgs4d_sda1fGw4u-wjpO2Q"
     
     # Алгоритм шифрования JWT токенов
     ALGORITHM: str = "HS256"

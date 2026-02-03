@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 
 # Работа с временными интервалами
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 # Импорт зависимости для получения сессии БД
 from app.db.database import get_db
@@ -94,7 +94,7 @@ async def register(
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=400, 
-            detail="Username or email already registered"
+            detail="Username или email уже зарегистрированы"
         )
     
     # Шаг 2: Хешируем пароль (НИКОГДА не храним пароли в открытом виде!)
