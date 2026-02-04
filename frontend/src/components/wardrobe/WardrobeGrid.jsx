@@ -20,9 +20,10 @@ import EmptyState from './EmptyState'
  * @param {Array} items - Массив вещей для отображения
  * @param {boolean} loading - Флаг загрузки (показывает скелетон)
  * @param {function} onDelete - Callback для удаления вещи
+ * @param {function} onEdit - Callback для редактирования вещи
  * @param {function} onAddClick - Callback для добавления вещи (передаётся в EmptyState)
  */
-export default function WardrobeGrid({ items, loading, onDelete, onAddClick }) {
+export default function WardrobeGrid({ items, loading, onDelete, onEdit, onAddClick }) {
     // ==========================================================================
     // СОСТОЯНИЕ: ЗАГРУЗКА
     // ==========================================================================
@@ -62,7 +63,7 @@ export default function WardrobeGrid({ items, loading, onDelete, onAddClick }) {
         // pb-20 на мобильных для учёта мобильной навигации
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-20 md:pb-0">
             {items.map(item => (
-                <WardrobeCard key={item.id} item={item} onDelete={onDelete} />
+                <WardrobeCard key={item.id} item={item} onDelete={onDelete} onEdit={onEdit} />
             ))}
         </div>
     )

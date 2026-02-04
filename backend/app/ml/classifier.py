@@ -177,6 +177,7 @@ class ClothingClassifier:
             dict: {"id": "t-shirt", "name": "Футболка", "type": "top", "confidence": 0.95}
         """
         if not self.model_loaded:
+            print("⚠️ Модель не загружена, возвращаем unknown")
             return {"id": "unknown", "name": "Неизвестно", "type": "other", "confidence": 0.0}
         
         try:
@@ -188,6 +189,17 @@ class ClothingClassifier:
             with torch.no_grad():
                 outputs = self.model(image_tensor)
                 probabilities = F.softmax(outputs, dim=1)
+                
+                # Получаем топ-3 предсказания для отладки
+                top_probs, top_classes = torch.topk(probabilities, 3)
+                
+                print(f"\n📊 Результаты классификации для {os.path.basename(image_path)}:")
+                for i in range(3):
+                    class_id = top_classes[0][i].item()
+                    conf = top_probs[0][i].item()
+                    class_info = FASHION_MNIST_CLASSES.get(class_id, {"name": "Неизвестно"})
+                    print(f"   #{i+1}: {class_info['name']} ({conf:.1%})")
+                
                 confidence, predicted = torch.max(probabilities, 1)
                 
                 class_id = predicted.item()
@@ -198,12 +210,16 @@ class ClothingClassifier:
                 "id": "unknown", "name": "Неизвестно", "type": "other"
             })
             
-            return {
+            result = {
                 "id": class_info["id"],
                 "name": class_info["name"],
                 "type": class_info["type"],
                 "confidence": round(conf, 4)
             }
+            
+            print(f"   ✅ Итог: {result['name']} ({result['confidence']:.1%})\n")
+            
+            return result
             
         except Exception as e:
             print(f"❌ Ошибка классификации: {e}")

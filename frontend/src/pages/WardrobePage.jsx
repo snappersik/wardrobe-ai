@@ -139,6 +139,16 @@ export default function WardrobePage() {
         }
     }
 
+    /**
+     * Открывает модальное окно редактирования для существующей вещи.
+     * 
+     * @param {Object} item - Вещь для редактирования
+     */
+    const handleEdit = (item) => {
+        setUploadedItem(item)
+        setIsEditModalOpen(true)
+    }
+
     // ==========================================================================
     // РЕНДЕР СТРАНИЦЫ
     // ==========================================================================
@@ -169,6 +179,7 @@ export default function WardrobePage() {
                     items={filteredItems}
                     loading={loading}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                     onAddClick={handleGalleryClick}
                 />
             </main>

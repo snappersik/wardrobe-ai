@@ -22,8 +22,9 @@ import clothingCategories from '../../data/clothing-categories.json'
  * @param {string} item.filename - Имя файла
  * @param {string} item.category - Категория
  * @param {function} onDelete - Callback для удаления вещи
+ * @param {function} onEdit - Callback для редактирования вещи
  */
-export default function WardrobeCard({ item, onDelete }) {
+export default function WardrobeCard({ item, onDelete, onEdit }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
@@ -70,7 +71,10 @@ export default function WardrobeCard({ item, onDelete }) {
                     {/* КНОПКИ ДЕЙСТВИЙ (появляются при наведении) */}
                     <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {/* Кнопка редактирования */}
-                        <button className="p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-white text-gray-700">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onEdit?.(item); }}
+                            className="p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-white text-gray-700"
+                        >
                             <Icon name="pencil" size={16} />
                         </button>
 

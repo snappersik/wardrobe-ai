@@ -487,8 +487,21 @@ async def get_current_weather(
     """
     Получает текущую погоду для города пользователя.
     """
-    weather = await get_weather(current_user.city or "Москва")
-    return weather
+    try:
+        city = current_user.city if current_user.city else "Москва"
+        weather = await get_weather(city)
+        return weather
+    except Exception as e:
+        print(f"❌ Weather error: {e}")
+        # Возвращаем fallback погоду
+        return {
+            "temp": 20,
+            "feels_like": 18,
+            "description": "данные недоступны",
+            "icon": "🌤️",
+            "city": current_user.city or "Москва",
+            "category": "warm"
+        }
 
 
 @router.get("/weather/by-coords")

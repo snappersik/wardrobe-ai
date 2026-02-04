@@ -210,12 +210,28 @@ async def update_item(
         item.filename = item_data.name  # Используем filename для хранения названия
     if item_data.category is not None:
         item.category = item_data.category
+    
+    import json
+    # Обработка мульти-выбора для цвета
     if item_data.color is not None:
-        item.color = item_data.color
+        if isinstance(item_data.color, list):
+            item.color = json.dumps(item_data.color)
+        else:
+            item.color = item_data.color
+    
+    # Обработка мульти-выбора для сезона
     if item_data.season is not None:
-        item.season = item_data.season
+        if isinstance(item_data.season, list):
+            item.season = json.dumps(item_data.season)
+        else:
+            item.season = item_data.season
+    
+    # Обработка мульти-выбора для стиля
     if item_data.style is not None:
-        item.style = item_data.style
+        if isinstance(item_data.style, list):
+            item.style = json.dumps(item_data.style)
+        else:
+            item.style = item_data.style
     
     await db.commit()
     await db.refresh(item)

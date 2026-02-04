@@ -5,6 +5,7 @@ import Toast from '../components/common/Toast'
 import { useAuth } from '../context/AuthContext'
 import Icon from '../components/common/Icon'
 import cities from '../data/russian-cities.json'
+import api from '../api/axios'
 
 export default function ProfilePage() {
     const { user, logout, updateProfile, deleteAccount } = useAuth()
@@ -107,10 +108,10 @@ export default function ProfilePage() {
         try {
             // Если выбран новый файл аватарки - загружаем
             if (fileInputRef.current?.files?.[0]) {
-                const formData = new FormData()
-                formData.append('file', fileInputRef.current.files[0])
+                const avatarFormData = new FormData()
+                avatarFormData.append('file', fileInputRef.current.files[0])
 
-                await api.post('/users/me/avatar', formData, {
+                await api.post('/users/me/avatar', avatarFormData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 })
             }

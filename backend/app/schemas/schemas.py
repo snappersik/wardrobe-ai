@@ -8,7 +8,7 @@
 # =============================================================================
 
 # Pydantic - библиотека для валидации данных
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 
 # Типизация для опциональных полей и списков
 from typing import Optional, List
@@ -109,12 +109,12 @@ class ClothingItemCreate(BaseModel):
         category: Категория (t-shirt, jeans, dress, shoes)
         color: Цвет (red, blue, black, white)
         season: Сезон (summer, winter, spring, fall, all)
-        style: Стиль (casual, formal, sport, vintage)
+        style: Стили (список: ["casual", "sport", "formal", "party", "street"])
     """
     category: Optional[str] = None          # Категория одежды
-    color: Optional[str] = None             # Цвет
-    season: Optional[str] = None            # Сезон
-    style: Optional[str] = None             # Стиль
+    color: Optional[List[str]] = None       # Цвета (мульти-выбор)
+    season: Optional[List[str]] = None      # Сезоны (мульти-выбор)
+    style: Optional[List[str]] = None       # Стили (мульти-выбор)
 
 
 class ClothingItemResponse(BaseModel):
@@ -138,12 +138,27 @@ class ClothingItemResponse(BaseModel):
     filename: str                           # Оригинальное имя файла
     image_path: str                         # Путь к изображению на сервере
     category: Optional[str] = None          # Категория
-    color: Optional[str] = None             # Цвет
-    season: Optional[str] = None            # Сезон
-    style: Optional[str] = None             # Стиль
+    color: Optional[List[str]] = None       # Цвета (мульти-выбор)
+    season: Optional[List[str]] = None      # Сезоны (мульти-выбор)
+    style: Optional[List[str]] = None       # Стили (мульти-выбор)
     wear_count: int                         # Счётчик ношений
     is_clean: bool                          # Флаг чистоты
     created_at: datetime                    # Дата добавления
+    
+    @validator('color', 'season', 'style', pre=True)
+    def parse_json_array(cls, v):
+        """Парсит JSON-строку из БД в список."""
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except:
+                return [v]  # Если это простая строка, оборачиваем в список
+        return v
     
     class Config:
         # Поддержка SQLAlchemy ORM моделей
@@ -158,9 +173,9 @@ class ClothingItemUpdate(BaseModel):
     """
     name: Optional[str] = None              # Название
     category: Optional[str] = None          # Категория
-    color: Optional[str] = None             # Цвет
-    season: Optional[str] = None            # Сезон
-    style: Optional[str] = None             # Стиль
+    color: Optional[List[str]] = None       # Цвета (мульти-выбор)
+    season: Optional[List[str]] = None      # Сезоны (мульти-выбор)
+    style: Optional[List[str]] = None       # Стили (мульти-выбор)
 
 # =============================================================================
 # СХЕМЫ ОБРАЗОВ (Outfit Schemas)

@@ -40,7 +40,22 @@ import {
     RectangleVertical, // Прямоугольник (брюки)
     HelpCircle,       // Вопрос (помощь)
     ShoppingBag,      // Сумка
-    Pencil            // Карандаш (редактировать)
+    Pencil,           // Карандаш (редактировать)
+    Sun,              // Солнце
+    Briefcase,        // Портфель (работа)
+    Music,            // Музыка (вечеринка)
+    Heart,            // Сердце (свидание)
+    Activity,         // Активность (спорт)
+    CloudSnow,        // Облако со снегом
+    Cloud,            // Облако
+    Thermometer,      // Термометр
+    ThumbsDown,       // Дизлайк
+    ThumbsUp,         // Лайк
+    Bookmark,         // Закладка
+    MapPin,           // Метка на карте
+    ChevronRight,     // Стрелка вправо
+    ChevronLeft,      // Стрелка влево
+    CloudSun          // Облако с солнцем
 } from 'lucide-react';
 
 // =============================================================================
@@ -85,7 +100,22 @@ const icons = {
     'boot': Footprints,
     'help-circle': HelpCircle,
     'shopping-bag': ShoppingBag,
-    'pencil': Pencil
+    'pencil': Pencil,
+    'sun': Sun,
+    'briefcase': Briefcase,
+    'music': Music,
+    'heart': Heart,
+    'activity': Activity,
+    'cloud-snow': CloudSnow,
+    'cloud': Cloud,
+    'thermometer': Thermometer,
+    'thumbs-down': ThumbsDown,
+    'thumbs-up': ThumbsUp,
+    'bookmark': Bookmark,
+    'map-pin': MapPin,
+    'chevron-right': ChevronRight,
+    'chevron-left': ChevronLeft,
+    'cloud-sun': CloudSun
 };
 
 // =============================================================================
