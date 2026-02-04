@@ -214,10 +214,18 @@ export default function WardrobePage() {
                     setUploadedItem(null)
                     fetchItems()
                 }}
-                onClose={() => {
+                onClose={async () => {
+                    // Если это pending вещь (не сохранена в БД) - отменяем загрузку
+                    if (uploadedItem?.pending && uploadedItem?.file_id) {
+                        try {
+                            await api.delete(`/clothing/cancel/${uploadedItem.file_id}`)
+                        } catch (error) {
+                            console.error('Failed to cancel upload', error)
+                        }
+                    }
                     setIsEditModalOpen(false)
                     setUploadedItem(null)
-                    fetchItems()
+                    // НЕ вызываем fetchItems() при отмене - ничего не изменилось
                 }}
             />
         </div>

@@ -103,14 +103,22 @@ class ClothingItemCreate(BaseModel):
     """
     Схема для СОЗДАНИЯ новой вещи (метаданные).
     
-    Примечание: Сам файл изображения передаётся отдельно через FormData.
+    Используется в: POST /api/clothing/confirm (подтверждение загрузки)
     
     Атрибуты:
+        file_id: ID временного файла (из /upload)
+        image_path: Путь к обработанному изображению
+        name: Название вещи
+        filename: Оригинальное имя файла
         category: Категория (t-shirt, jeans, dress, shoes)
-        color: Цвет (red, blue, black, white)
-        season: Сезон (summer, winter, spring, fall, all)
-        style: Стили (список: ["casual", "sport", "formal", "party", "street"])
+        color: Цвета (мульти-выбор)
+        season: Сезоны (мульти-выбор)
+        style: Стили (мульти-выбор)
     """
+    file_id: Optional[str] = None           # ID временного файла
+    image_path: str                         # Путь к изображению (обязательный)
+    name: Optional[str] = None              # Название вещи
+    filename: Optional[str] = None          # Оригинальное имя файла
     category: Optional[str] = None          # Категория одежды
     color: Optional[List[str]] = None       # Цвета (мульти-выбор)
     season: Optional[List[str]] = None      # Сезоны (мульти-выбор)

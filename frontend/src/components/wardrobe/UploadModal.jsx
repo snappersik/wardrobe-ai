@@ -131,6 +131,10 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, initialM
             const response = await api.post('/clothing/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
+            // Логируем ответ для отладки AI
+            console.log('📥 Upload response:', response.data)
+            console.log('🎯 AI Category:', response.data.category)
+            console.log('🎨 AI Color:', response.data.color)
             // Передаём данные загруженной вещи в callback для открытия редактора
             onUploadSuccess(response.data)
             handleClose()

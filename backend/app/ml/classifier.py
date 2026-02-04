@@ -181,13 +181,55 @@ class ClothingClassifier:
             return {"id": "unknown", "name": "Неизвестно", "type": "other", "confidence": 0.0}
         
         try:
-            # Загружаем и преобразуем изображение
-            image = Image.open(image_path).convert("RGB")
-            image_tensor = self.transform(image).unsqueeze(0).to(self.device)
+            # Загружаем изображение
+            image = Image.open(image_path)
+            
+            # Специальная обработка для PNG с прозрачностью (после RemBG)
+            if image.mode == 'RGBA':
+                # Создаём чёрный фон и накладываем изображение
+                # Fashion-MNIST обучен на светлой одежде на тёмном фоне
+                background = Image.new('RGB', image.size, (0, 0, 0))
+                # Используем альфа-канал как маску
+                background.paste(image, mask=image.split()[3])
+                image = background
+            else:
+                image = image.convert("RGB")
+            
+            # Конвертируем в grayscale для анализа
+            gray = image.convert("L")
+            
+            # Ресайз до 28x28 (как в Fashion-MNIST)
+            gray = gray.resize((28, 28), Image.Resampling.LANCZOS)
+            
+            # Улучшаем контраст с помощью гистограммной эквализации
+            import numpy as np
+            from PIL import ImageOps
+            
+            # Автоконтраст для улучшения разделения фона и объекта
+            gray = ImageOps.autocontrast(gray)
+            
+            # Инвертируем если одежда тёмная на светлом фоне
+            # Fashion-MNIST ожидает светлую одежду на чёрном фоне
+            img_array = np.array(gray)
+            
+            # Если центр изображения темнее краёв - инвертируем
+            center_val = img_array[10:18, 10:18].mean()
+            edge_val = (img_array[0:5, :].mean() + img_array[-5:, :].mean() + 
+                       img_array[:, 0:5].mean() + img_array[:, -5:].mean()) / 4
+            
+            if center_val < edge_val:
+                # Центр тёмный, края светлые - инвертируем
+                gray = ImageOps.invert(gray)
+                print(f"   ↔️ Изображение инвертировано (центр {center_val:.0f}, края {edge_val:.0f})")
+            
+            # Конвертируем в тензор
+            img_tensor = transforms.ToTensor()(gray)
+            img_tensor = transforms.Normalize((0.5,), (0.5,))(img_tensor)
+            img_tensor = img_tensor.unsqueeze(0).to(self.device)
             
             # Делаем предсказание
             with torch.no_grad():
-                outputs = self.model(image_tensor)
+                outputs = self.model(img_tensor)
                 probabilities = F.softmax(outputs, dim=1)
                 
                 # Получаем топ-3 предсказания для отладки
@@ -223,6 +265,8 @@ class ClothingClassifier:
             
         except Exception as e:
             print(f"❌ Ошибка классификации: {e}")
+            import traceback
+            traceback.print_exc()
             return {"id": "unknown", "name": "Неизвестно", "type": "other", "confidence": 0.0}
     
     def predict_top_k(self, image_path: str, k: int = 3) -> list:

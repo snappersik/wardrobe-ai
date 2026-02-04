@@ -47,16 +47,16 @@ from app.ml.classifier import get_classifier
 from app.ml.color_extractor import extract_dominant_color
 
 # =============================================================================
-# ЭНДПОИНТ: ЗАГРУЗКА ФОТО ОДЕЖДЫ
+# ЭНДПОИНТ: ПРЕДОБРАБОТКА ФОТО ОДЕЖДЫ (без сохранения в БД)
 # =============================================================================
-@router.post("/upload", response_model=schemas.ClothingItemResponse)
+@router.post("/upload")
 async def upload_item(
     file: UploadFile = File(...),   # Файл изображения (обязательный)
     current_user: models.User = Depends(services.get_current_user),  # Авторизация
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Загрузка фотографии одежды в гардероб.
+    Предобработка фотографии одежды БЕЗ сохранения в БД.
     
     Алгоритм:
     1. Создаём папку uploads если её нет
@@ -64,9 +64,23 @@ async def upload_item(
     3. Сохраняем временный файл
     4. Распознаем вещь через Fashion-MNIST CNN
     5. Удаляем фон через RemBG
-    6. Сохраняем итоговый PNG
-    7. Создаём запись в БД
+    6. Извлекаем доминирующий цвет
+    7. Возвращаем данные для подтверждения (БЕЗ записи в БД)
+    
+    После этого фронтенд показывает модальное окно редактирования.
+    При нажатии "Сохранить" вызывается POST /clothing/confirm.
+    При отмене вызывается DELETE /clothing/cancel/{file_id}.
     """
+    import sys
+    import logging
+    
+    # Настраиваем логирование для вывода в консоль
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"📥 Начало загрузки файла: {file.filename}")
+    print(f"📥 [UPLOAD] Начало загрузки файла: {file.filename}", file=sys.stderr)
+    
     # Шаг 1: Создаём директорию для загрузок
     upload_dir = "uploads"
     os.makedirs(upload_dir, exist_ok=True)
@@ -79,58 +93,148 @@ async def upload_item(
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
+    logger.info(f"📁 Файл сохранён: {temp_path}")
+    print(f"📁 [UPLOAD] Файл сохранён: {temp_path}", file=sys.stderr)
+    
     try:
-        # Шаг 4: Распознавание через Fashion-MNIST классификатор
-        classifier = get_classifier()
-        prediction = classifier.predict(temp_path)
+        # Шаг 4: Удаление фона через RemBG (делаем СНАЧАЛА!)
+        logger.info("🖼️ Удаление фона...")
+        print("🖼️ [UPLOAD] Удаление фона...", file=sys.stderr)
         
-        category = prediction.get("id", "unknown")
-        confidence = prediction.get("confidence", 0.0)
-        
-        print(f"🎯 Классификация: {prediction['name']} ({category}) - {confidence*100:.1f}%")
-        
-        # Шаг 5: Удаление фона через RemBG
         final_filename = f"{file_id}.png" # Всегда PNG для прозрачности
         final_path = f"{upload_dir}/{final_filename}"
         
         remover = get_remover()
         remover.remove_background(temp_path, final_path)
         
-        # Шаг 5.5: Извлечение доминирующего цвета через K-means
+        logger.info(f"✓ Фон удалён: {final_path}")
+        print(f"✓ [UPLOAD] Фон удалён: {final_path}", file=sys.stderr)
+        
+        # Шаг 5: Распознавание через Fashion-MNIST классификатор (ПОСЛЕ удаления фона)
+        # Теперь классификатор получает PNG с прозрачным фоном - гораздо лучше!
+        logger.info("🤖 Запуск классификатора...")
+        print("🤖 [UPLOAD] Запуск классификатора...", file=sys.stderr)
+        
+        classifier = get_classifier()
+        prediction = classifier.predict(final_path)  # Используем PNG без фона!
+        
+        category = prediction.get("id", "unknown")
+        confidence = prediction.get("confidence", 0.0)
+        
+        logger.info(f"🎯 Классификация: {prediction['name']} ({category}) - {confidence*100:.1f}%")
+        print(f"🎯 [UPLOAD] Классификация: {prediction['name']} ({category}) - {confidence*100:.1f}%", file=sys.stderr)
+        
+        # Шаг 6: Извлечение доминирующего цвета через K-means
+        logger.info("🎨 Извлечение цвета...")
+        print("🎨 [UPLOAD] Извлечение цвета...", file=sys.stderr)
+        
         color_info = extract_dominant_color(final_path)
-        color_name = color_info.get("name_ru", "неизвестный")
+        # Используем name_en (ID цвета) для фронтенда
+        color_id = color_info.get("name_en", "gray")
         color_hex = color_info.get("hex", "#808080")
         
-        print(f"🎨 Цвет: {color_name} ({color_hex})")
+        logger.info(f"🎨 Цвет: {color_id} ({color_hex})")
+        print(f"🎨 [UPLOAD] Цвет: {color_id} ({color_hex})", file=sys.stderr)
         
-        # Шаг 6: Создаём запись в базе данных
-        new_item = models.ClothingItem(
-            owner_id=current_user.id,
-            filename=file.filename,
-            image_path=final_path,
-            category=category,
-            color=color_name  # Теперь реальный цвет из K-means!
-        )
+        result = {
+            "file_id": file_id,
+            "filename": file.filename,
+            "image_path": final_path,
+            "category": category,
+            "color": color_id,  # ID цвета (white, black, etc.)
+            "confidence": confidence,
+            "pending": True  # Флаг что вещь ещё не сохранена
+        }
         
-        db.add(new_item)
-        await db.commit()
-        await db.refresh(new_item)
+        logger.info(f"✅ Загрузка завершена: {result}")
+        print(f"✅ [UPLOAD] Загрузка завершена: {result}", file=sys.stderr)
         
-        # Лог аудита
-        log = models.AuditLog(
-            user_id=current_user.id, 
-            action="upload_item",
-            details=f"Uploaded and processed {file.filename} (detected: {category})"
-        )
-        db.add(log)
-        await db.commit()
-        
-        return new_item
+        # Возвращаем данные для модального окна редактирования
+        # НЕ сохраняем в БД - это произойдёт при подтверждении
+        return result
 
+    except Exception as e:
+        logger.error(f"❌ Ошибка загрузки: {e}")
+        print(f"❌ [UPLOAD] Ошибка: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+        
     finally:
-        # Удаляем временный файл
+        # Удаляем временный файл (но НЕ final_path - он нужен!)
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+# =============================================================================
+# ЭНДПОИНТ: ПОДТВЕРЖДЕНИЕ СОХРАНЕНИЯ ВЕЩИ В БД
+# =============================================================================
+@router.post("/confirm", response_model=schemas.ClothingItemResponse)
+async def confirm_item(
+    item_data: schemas.ClothingItemCreate,
+    current_user: models.User = Depends(services.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Подтверждение сохранения вещи после редактирования.
+    Вызывается при нажатии "Сохранить в гардероб".
+    """
+    import json
+    
+    # Проверяем что файл существует
+    if not os.path.exists(item_data.image_path):
+        raise HTTPException(status_code=400, detail="Image file not found")
+    
+    # Создаём запись в базе данных
+    new_item = models.ClothingItem(
+        owner_id=current_user.id,
+        filename=item_data.name or item_data.filename,
+        image_path=item_data.image_path,
+        category=item_data.category,
+        color=json.dumps(item_data.color) if isinstance(item_data.color, list) else item_data.color,
+        season=json.dumps(item_data.season) if isinstance(item_data.season, list) else item_data.season,
+        style=json.dumps(item_data.style) if isinstance(item_data.style, list) else item_data.style
+    )
+    
+    db.add(new_item)
+    await db.commit()
+    await db.refresh(new_item)
+    
+    # Лог аудита
+    log = models.AuditLog(
+        user_id=current_user.id, 
+        action="upload_item",
+        details=f"Confirmed and saved {new_item.filename} (category: {item_data.category})"
+    )
+    db.add(log)
+    await db.commit()
+    
+    print(f"✅ Вещь сохранена в БД: {new_item.filename} (ID: {new_item.id})")
+    
+    return new_item
+
+
+# =============================================================================
+# ЭНДПОИНТ: ОТМЕНА ЗАГРУЗКИ (удаление файла без сохранения)
+# =============================================================================
+@router.delete("/cancel/{file_id}")
+async def cancel_upload(
+    file_id: str,
+    current_user: models.User = Depends(services.get_current_user)
+):
+    """
+    Отмена загрузки - удаляет обработанный файл без сохранения в БД.
+    Вызывается при нажатии X или Escape в модальном окне.
+    """
+    upload_dir = "uploads"
+    file_path = f"{upload_dir}/{file_id}.png"
+    
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"🗑️ Отменена загрузка: {file_id}")
+        return {"message": "Upload cancelled", "deleted": True}
+    
+    return {"message": "File not found", "deleted": False}
 
 
 # =============================================================================

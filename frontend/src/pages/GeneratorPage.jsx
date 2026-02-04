@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 import { useAuth } from '../context/AuthContext'
@@ -40,13 +40,55 @@ const GeneratorPage = () => {
         fetchWeather()
     }, [])
 
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (stage !== 'swipe') return
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault()
+                    handleFeedback('dislike')
+                    break
+                case 'ArrowRight':
+                    e.preventDefault()
+                    handleFeedback('like')
+                    break
+                case 'ArrowUp':
+                    e.preventDefault()
+                    handleFeedback('favorite')
+                    break
+                case 'ArrowDown':
+                    e.preventDefault()
+                    handleFeedback('save')
+                    break
+                case 'Escape':
+                    e.preventDefault()
+                    setStage('conditions')
+                    break
+                default:
+                    break
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [stage, currentIndex, outfits])
+
     const fetchWeather = async () => {
         try {
             const { data } = await api.get('/outfits/weather')
             setWeather(data)
             setWeatherCategory(data.category || 'warm')
         } catch (error) {
-            console.log('Weather not available')
+            console.log('Weather not available, using default')
+            // Используем дефолтные значения
+            setWeather({
+                temp: 20,
+                description: 'данные недоступны',
+                city: 'Москва',
+                category: 'warm'
+            })
         }
     }
 
@@ -54,7 +96,7 @@ const GeneratorPage = () => {
     const handleGenerate = async () => {
         setGenerating(true)
         try {
-            const { data } = await api.post(`/outfits/generate?occasion=${occasion}&weather_category=${weatherCategory}&count=5`)
+            const { data } = await api.post(`/outfits/generate?occasion=${occasion}&weather_category=${weatherCategory}&count=10`)
             setOutfits(data)
             setCurrentIndex(0)
             setStats({ saved: 0, favorited: 0, skipped: 0 })
@@ -117,6 +159,19 @@ const GeneratorPage = () => {
         setCurrentIndex(0)
     }
 
+    // Получение цвета для score
+    const getScoreColor = (score) => {
+        if (score >= 0.75) return 'text-green-500'
+        if (score >= 0.5) return 'text-yellow-500'
+        return 'text-red-500'
+    }
+
+    const getScoreBgColor = (score) => {
+        if (score >= 0.75) return 'bg-green-100'
+        if (score >= 0.5) return 'bg-yellow-100'
+        return 'bg-red-100'
+    }
+
     // Опции выбора
     const occasions = [
         { id: 'casual', label: 'Прогулка', icon: 'sun' },
@@ -173,8 +228,8 @@ const GeneratorPage = () => {
                                         key={o.id}
                                         onClick={() => setOccasion(o.id)}
                                         className={`p-4 rounded-xl border-2 transition-all ${occasion === o.id
-                                                ? 'border-primary bg-primary/5 shadow-md'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-primary bg-primary/5 shadow-md'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <Icon name={o.icon} size={24} className={occasion === o.id ? 'text-primary' : 'text-gray-400'} />
@@ -195,8 +250,8 @@ const GeneratorPage = () => {
                                         key={w.id}
                                         onClick={() => setWeatherCategory(w.id)}
                                         className={`flex-shrink-0 px-5 py-3 rounded-xl transition-all flex items-center gap-2 ${weatherCategory === w.id
-                                                ? `bg-gradient-to-r ${w.color} text-white shadow-lg`
-                                                : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'
+                                            ? `bg-gradient-to-r ${w.color} text-white shadow-lg`
+                                            : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'
                                             }`}
                                     >
                                         <Icon name={w.icon} size={18} />
@@ -224,12 +279,17 @@ const GeneratorPage = () => {
                                 </span>
                             )}
                         </button>
+
+                        {/* Keyboard hints */}
+                        <p className="text-center text-xs text-gray-400">
+                            Во время просмотра используйте ←↓→↑ для навигации
+                        </p>
                     </div>
                 )}
 
                 {/* STAGE 2: SWIPE */}
                 {stage === 'swipe' && outfits.length > 0 && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 relative">
                         {/* Progress */}
                         <div className="flex items-center justify-between">
                             <button onClick={() => setStage('conditions')} className="text-gray-500 hover:text-gray-700">
@@ -249,32 +309,69 @@ const GeneratorPage = () => {
                             />
                         </div>
 
-                        {/* Outfit Card */}
-                        <div className={`bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 transform ${swipeDirection === 'left' ? '-translate-x-full rotate-[-15deg] opacity-0' :
-                                swipeDirection === 'right' ? 'translate-x-full rotate-[15deg] opacity-0' : ''
-                            }`}>
-                            {/* Items Grid */}
-                            <div className="p-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    {outfits[currentIndex]?.items.map((item, idx) => (
-                                        <div key={idx} className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-                                            <img
-                                                src={`http://localhost:8000/${item.image_path}`}
-                                                alt={item.filename}
-                                                className="w-full h-full object-contain"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
+                        {/* Outfit Card with Navigation Arrows */}
+                        <div className="relative">
+                            {/* Left Arrow - Click to Dislike */}
+                            <button
+                                onClick={() => handleFeedback('dislike')}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-red-500 hover:bg-red-50 transition-all hover:scale-110 hidden md:flex"
+                            >
+                                <Icon name="chevron-left" size={24} />
+                            </button>
 
-                                {/* Outfit Info */}
-                                <div className="mt-4 text-center">
-                                    <h3 className="text-xl font-bold text-gray-900">
-                                        {outfits[currentIndex]?.name}
-                                    </h3>
-                                    <p className="text-gray-500 text-sm mt-1">
-                                        {Math.round(outfits[currentIndex]?.score * 100)}% соответствие
-                                    </p>
+                            {/* Right Arrow - Click to Like */}
+                            <button
+                                onClick={() => handleFeedback('like')}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-green-500 hover:bg-green-50 transition-all hover:scale-110 hidden md:flex"
+                            >
+                                <Icon name="chevron-right" size={24} />
+                            </button>
+
+                            <div className={`bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 transform ${swipeDirection === 'left' ? '-translate-x-full rotate-[-15deg] opacity-0' :
+                                swipeDirection === 'right' ? 'translate-x-full rotate-[15deg] opacity-0' : ''
+                                }`}>
+                                {/* Items Grid */}
+                                <div className="p-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {outfits[currentIndex]?.items.map((item, idx) => (
+                                            <div key={idx} className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+                                                <img
+                                                    src={`http://localhost:8000/${item.image_path}`}
+                                                    alt={item.filename}
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Outfit Info */}
+                                    <div className="mt-4 text-center">
+                                        <h3 className="text-xl font-bold text-gray-900">
+                                            {outfits[currentIndex]?.name}
+                                        </h3>
+
+                                        {/* Score with breakdown */}
+                                        <div className="mt-2">
+                                            <p className={`text-2xl font-bold ${getScoreColor(outfits[currentIndex]?.score)}`}>
+                                                {Math.round(outfits[currentIndex]?.score * 100)}%
+                                            </p>
+
+                                            {/* Score breakdown */}
+                                            {outfits[currentIndex]?.score_breakdown && (
+                                                <div className="flex justify-center gap-2 mt-2 flex-wrap">
+                                                    <span className={`px-2 py-1 rounded-full text-xs ${getScoreBgColor(outfits[currentIndex]?.color_score)} ${getScoreColor(outfits[currentIndex]?.color_score)}`}>
+                                                        🎨 {Math.round(outfits[currentIndex]?.color_score * 100)}%
+                                                    </span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs ${getScoreBgColor(outfits[currentIndex]?.style_score)} ${getScoreColor(outfits[currentIndex]?.style_score)}`}>
+                                                        👔 {Math.round(outfits[currentIndex]?.style_score * 100)}%
+                                                    </span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs ${getScoreBgColor(outfits[currentIndex]?.weather_score)} ${getScoreColor(outfits[currentIndex]?.weather_score)}`}>
+                                                        🌤️ {Math.round(outfits[currentIndex]?.weather_score * 100)}%
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -314,12 +411,12 @@ const GeneratorPage = () => {
                             </button>
                         </div>
 
-                        {/* Button Labels */}
+                        {/* Button Labels with Keyboard Hints */}
                         <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-                            <span className="w-14 text-center">Не то</span>
-                            <span className="w-14 text-center">Нравится</span>
-                            <span className="w-16 text-center">Избранное</span>
-                            <span className="w-14 text-center">Сохранить</span>
+                            <span className="w-14 text-center">← Не то</span>
+                            <span className="w-14 text-center">→ Нравится</span>
+                            <span className="w-16 text-center">↑ Избранное</span>
+                            <span className="w-14 text-center">↓ Сохранить</span>
                         </div>
                     </div>
                 )}
@@ -332,7 +429,8 @@ const GeneratorPage = () => {
                             <Icon name="check" size={48} className="text-white" />
                         </div>
 
-                        <h2 className="text-2xl font-bold text-gray-900">Готово!</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">Это все образы! 🎉</h2>
+                        <p className="text-gray-500">Вы просмотрели {outfits.length} образов</p>
 
                         {/* Stats */}
                         <div className="flex justify-center gap-6">
@@ -375,3 +473,4 @@ const GeneratorPage = () => {
 }
 
 export default GeneratorPage
+

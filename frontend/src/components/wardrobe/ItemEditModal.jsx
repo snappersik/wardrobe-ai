@@ -224,11 +224,25 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
     const handleSave = async () => {
         setSaving(true)
         try {
-            // Обновляем вещь на сервере
-            await api.put(`/clothing/${item.id}`, formData)
+            if (item.pending) {
+                // Новая вещь (после загрузки) - подтверждаем сохранение в БД
+                await api.post('/clothing/confirm', {
+                    file_id: item.file_id,
+                    image_path: item.image_path,
+                    name: formData.name,
+                    filename: item.filename,
+                    category: formData.category,
+                    color: formData.color,
+                    season: formData.season,
+                    style: formData.style
+                })
+            } else {
+                // Существующая вещь - обновляем через PUT
+                await api.put(`/clothing/${item.id}`, formData)
+            }
             onSave?.()
         } catch (error) {
-            console.error('Failed to update item', error)
+            console.error('Failed to save item', error)
             alert('Не удалось сохранить изменения')
         } finally {
             setSaving(false)

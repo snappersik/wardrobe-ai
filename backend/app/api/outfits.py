@@ -173,6 +173,72 @@ async def get_my_outfits(
 
 
 # =============================================================================
+# ЭНДПОИНТ: ПОГОДА ДЛЯ ПОЛЬЗОВАТЕЛЯ
+# =============================================================================
+# ВАЖНО: Эти роуты должны быть ПЕРЕД /{outfit_id} иначе FastAPI 
+# попытается распарсить "weather" как outfit_id и выдаст 422 ошибку
+from app.services.weather import get_weather, get_weather_by_coords, reverse_geocode, temp_to_category, category_to_russian
+
+@router.get("/weather")
+async def get_current_weather(
+    current_user: models.User = Depends(services.get_current_user)
+):
+    """
+    Получает текущую погоду для города пользователя.
+    """
+    try:
+        city = current_user.city if current_user.city else "Москва"
+        weather = await get_weather(city)
+        return weather
+    except Exception as e:
+        print(f"❌ Weather error: {e}")
+        # Возвращаем fallback погоду
+        return {
+            "temp": 20,
+            "feels_like": 18,
+            "description": "данные недоступны",
+            "icon": "🌤️",
+            "city": current_user.city or "Москва",
+            "category": "warm"
+        }
+
+
+@router.get("/weather/by-coords")
+async def get_weather_by_coordinates(
+    lat: float,
+    lon: float
+):
+    """
+    Получает погоду по координатам (для геолокации браузера).
+    Не требует авторизации для первичного определения города.
+    """
+    weather = await get_weather_by_coords(lat, lon)
+    
+    # Получаем название города по координатам
+    city = await reverse_geocode(lat, lon)
+    weather["city"] = city or "Неизвестный город"
+    
+    return weather
+
+
+@router.get("/weather/city-by-coords")
+async def get_city_by_coordinates(
+    lat: float,
+    lon: float
+):
+    """
+    Определяет название города по координатам.
+    Используется для автоматического определения города пользователя.
+    """
+    city = await reverse_geocode(lat, lon)
+    return {
+        "city": city or "Москва",
+        "lat": lat,
+        "lon": lon
+    }
+
+
+# =============================================================================
 # ЭНДПОИНТ: ДЕТАЛИ ОБРАЗА
 # =============================================================================
 @router.get("/{outfit_id}", response_model=schemas.OutfitDetailResponse)
@@ -471,78 +537,16 @@ async def delete_outfit(
     # Удаляем сам образ
     await db.delete(outfit)
     await db.commit()
-    
+
     return {"message": "Outfit deleted"}
 
 
 # =============================================================================
-# ЭНДПОИНТ: ПОГОДА ДЛЯ ПОЛЬЗОВАТЕЛЯ
-# =============================================================================
-from app.services.weather import get_weather, get_weather_by_coords, reverse_geocode, temp_to_category, category_to_russian
-
-@router.get("/weather")
-async def get_current_weather(
-    current_user: models.User = Depends(services.get_current_user)
-):
-    """
-    Получает текущую погоду для города пользователя.
-    """
-    try:
-        city = current_user.city if current_user.city else "Москва"
-        weather = await get_weather(city)
-        return weather
-    except Exception as e:
-        print(f"❌ Weather error: {e}")
-        # Возвращаем fallback погоду
-        return {
-            "temp": 20,
-            "feels_like": 18,
-            "description": "данные недоступны",
-            "icon": "🌤️",
-            "city": current_user.city or "Москва",
-            "category": "warm"
-        }
-
-
-@router.get("/weather/by-coords")
-async def get_weather_by_coordinates(
-    lat: float,
-    lon: float
-):
-    """
-    Получает погоду по координатам (для геолокации браузера).
-    Не требует авторизации для первичного определения города.
-    """
-    weather = await get_weather_by_coords(lat, lon)
-    
-    # Получаем название города по координатам
-    city = await reverse_geocode(lat, lon)
-    weather["city"] = city or "Неизвестный город"
-    
-    return weather
-
-
-@router.get("/weather/city-by-coords")
-async def get_city_by_coordinates(
-    lat: float,
-    lon: float
-):
-    """
-    Определяет название города по координатам.
-    Используется для автоматического определения города пользователя.
-    """
-    city = await reverse_geocode(lat, lon)
-    return {
-        "city": city or "Москва",
-        "lat": lat,
-        "lon": lon
-    }
-
-
-# =============================================================================
-# ЭНДПОИНТ: AI ГЕНЕРАЦИЯ ОБРАЗОВ
+# ЭНДПОИНТ: AI ГЕНЕРАЦИЯ ОБРАЗОВ (УМНАЯ ВЕРСИЯ)
 # =============================================================================
 import random
+import itertools
+from app.ml.outfit_scorer import score_outfit, filter_items_by_weather
 
 @router.post("/generate")
 async def generate_outfits(
@@ -550,21 +554,26 @@ async def generate_outfits(
     db: AsyncSession = Depends(get_db),
     occasion: str = "casual",
     weather_category: str = "warm",
-    count: int = 3
+    count: int = 5
 ):
     """
-    Генерирует случайные образы из гардероба пользователя.
+    Генерирует умные образы из гардероба пользователя.
     
     Алгоритм:
     1. Получаем все вещи пользователя
-    2. Группируем по типам (top, bottom, shoes)
-    3. Создаём случайные комбинации
-    4. Возвращаем несохранённые образы
+    2. Фильтруем по погоде/сезону
+    3. Группируем по типам (top, bottom, shoes)
+    4. Генерируем ВСЕ возможные комбинации
+    5. Оцениваем каждую комбинацию по:
+       - Цветовой гармонии (40%)
+       - Совместимости стилей (40%)
+       - Соответствию погоде (20%)
+    6. Сортируем по score и возвращаем топ-N
     
     Args:
         occasion: Повод (casual, work, party, date, sport)
         weather_category: Погода (cold, cool, warm, hot)
-        count: Количество образов (1-5)
+        count: Количество образов (1-10)
     """
     # Получаем все вещи пользователя
     result = await db.execute(
@@ -580,41 +589,101 @@ async def generate_outfits(
             detail="Недостаточно вещей в гардеробе. Загрузите минимум 2 вещи."
         )
     
+    # Конвертируем в словари для scorer
+    items_dict = [
+        {
+            "id": item.id,
+            "filename": item.filename,
+            "image_path": item.image_path,
+            "category": item.category,
+            "color": item.color,
+            "style": item.style,
+            "season": item.season
+        }
+        for item in all_items
+    ]
+    
     # Группируем по типам
-    tops = [i for i in all_items if i.category in ["t-shirt", "shirt", "pullover", "coat"]]
-    bottoms = [i for i in all_items if i.category in ["trouser", "dress"]]
-    shoes = [i for i in all_items if i.category in ["sneaker", "sandal", "ankle-boot"]]
-    accessories = [i for i in all_items if i.category == "bag"]
+    tops = [i for i in items_dict if i["category"] in ["t-shirt", "shirt", "pullover", "coat"]]
+    bottoms = [i for i in items_dict if i["category"] in ["trouser", "dress"]]
+    shoes = [i for i in items_dict if i["category"] in ["sneaker", "sandal", "ankle-boot"]]
+    accessories = [i for i in items_dict if i["category"] == "bag"]
     
-    # Если нет разделения, используем все вещи
+    # Если нет разделения по категориям, используем все вещи
     if not tops:
-        tops = all_items
+        tops = items_dict
     if not bottoms:
-        bottoms = all_items
+        bottoms = items_dict
     
+    # Генерируем все возможные комбинации
+    all_combinations = []
+    
+    for top in tops:
+        for bottom in bottoms:
+            # Пропускаем если верх = низ = платье
+            if top["id"] == bottom["id"]:
+                continue
+            
+            # Базовая комбинация: верх + низ
+            base_outfit = [top, bottom]
+            
+            # Если есть обувь - добавляем варианты
+            if shoes:
+                for shoe in shoes:
+                    outfit = base_outfit + [shoe]
+                    all_combinations.append(outfit)
+                    
+                    # Добавляем вариант с аксессуаром
+                    if accessories:
+                        for acc in accessories:
+                            outfit_with_acc = outfit + [acc]
+                            all_combinations.append(outfit_with_acc)
+            else:
+                all_combinations.append(base_outfit)
+                if accessories:
+                    for acc in accessories:
+                        outfit_with_acc = base_outfit + [acc]
+                        all_combinations.append(outfit_with_acc)
+    
+    # Если комбинаций нет - создаём хотя бы одну
+    if not all_combinations:
+        all_combinations.append(items_dict[:min(3, len(items_dict))])
+    
+    # Оцениваем каждую комбинацию
+    scored_outfits = []
+    for combo in all_combinations:
+        scores = score_outfit(combo, occasion, weather_category)
+        scored_outfits.append({
+            "items": combo,
+            "scores": scores
+        })
+    
+    # Сортируем по score (лучшие первые)
+    scored_outfits.sort(key=lambda x: x["scores"]["total"], reverse=True)
+    
+    # Фильтруем только хорошие образы (score > 0.5)
+    good_outfits = [o for o in scored_outfits if o["scores"]["total"] > 0.5]
+    
+    # Если хороших нет - берём лучшие из того что есть
+    if not good_outfits:
+        good_outfits = scored_outfits[:count]
+    
+    # Убираем дубликаты (одинаковые наборы ID)
+    seen_combos = set()
+    unique_outfits = []
+    for outfit in good_outfits:
+        combo_ids = tuple(sorted(item["id"] for item in outfit["items"]))
+        if combo_ids not in seen_combos:
+            seen_combos.add(combo_ids)
+            unique_outfits.append(outfit)
+    
+    # Ограничиваем количество
+    count = min(count, 10)  # Максимум 10
+    final_outfits = unique_outfits[:count]
+    
+    # Формируем ответ
     generated_outfits = []
-    count = min(count, 5)  # Максимум 5
-    
-    for i in range(count):
-        outfit_items = []
-        
-        # Выбираем верх
-        if tops:
-            outfit_items.append(random.choice(tops))
-        
-        # Выбираем низ (если это не платье)
-        if bottoms and (not outfit_items or outfit_items[0].category != "dress"):
-            outfit_items.append(random.choice(bottoms))
-        
-        # Добавляем обувь если есть
-        if shoes:
-            outfit_items.append(random.choice(shoes))
-        
-        # Иногда добавляем аксессуар
-        if accessories and random.random() > 0.5:
-            outfit_items.append(random.choice(accessories))
-        
-        # Формируем ответ (без сохранения в БД)
+    for i, outfit in enumerate(final_outfits):
         generated_outfits.append({
             "id": None,  # Не сохранён
             "name": f"AI образ #{i + 1}",
@@ -622,15 +691,19 @@ async def generate_outfits(
             "weather": weather_category,
             "items": [
                 {
-                    "id": item.id,
-                    "filename": item.filename,
-                    "image_path": item.image_path,
-                    "category": item.category,
-                    "color": item.color
+                    "id": item["id"],
+                    "filename": item["filename"],
+                    "image_path": item["image_path"],
+                    "category": item["category"],
+                    "color": item["color"]
                 }
-                for item in outfit_items
+                for item in outfit["items"]
             ],
-            "score": round(random.uniform(0.7, 0.99), 2)  # Фейковый скор
+            "score": outfit["scores"]["total"],
+            "score_breakdown": outfit["scores"]["breakdown"],
+            "color_score": outfit["scores"]["color"],
+            "style_score": outfit["scores"]["style"],
+            "weather_score": outfit["scores"]["weather"]
         })
     
     return generated_outfits
