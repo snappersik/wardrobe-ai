@@ -203,6 +203,16 @@ async def get_current_weather(
         }
 
 
+@router.get("/weather/current")
+async def get_current_weather_safe(
+    current_user: models.User = Depends(services.get_current_user)
+):
+    """
+    Safe alias for current weather (avoids /{outfit_id} path conflicts).
+    """
+    return await get_current_weather(current_user)
+
+
 @router.get("/weather/by-coords")
 async def get_weather_by_coordinates(
     lat: float,
@@ -603,17 +613,20 @@ async def generate_outfits(
         for item in all_items
     ]
     
+    # Фильтруем вещи по погоде/сезону (если нет подходящих — возвращает все)
+    filtered_items = filter_items_by_weather(items_dict, weather_category)
+
     # Группируем по типам
-    tops = [i for i in items_dict if i["category"] in ["t-shirt", "shirt", "pullover", "coat"]]
-    bottoms = [i for i in items_dict if i["category"] in ["trouser", "dress"]]
-    shoes = [i for i in items_dict if i["category"] in ["sneaker", "sandal", "ankle-boot"]]
-    accessories = [i for i in items_dict if i["category"] == "bag"]
+    tops = [i for i in filtered_items if i["category"] in ["t-shirt", "shirt", "pullover", "coat"]]
+    bottoms = [i for i in filtered_items if i["category"] in ["trouser", "dress"]]
+    shoes = [i for i in filtered_items if i["category"] in ["sneaker", "sandal", "ankle-boot"]]
+    accessories = [i for i in filtered_items if i["category"] == "bag"]
     
     # Если нет разделения по категориям, используем все вещи
     if not tops:
-        tops = items_dict
+        tops = filtered_items
     if not bottoms:
-        bottoms = items_dict
+        bottoms = filtered_items
     
     # Генерируем все возможные комбинации
     all_combinations = []

@@ -198,9 +198,11 @@ export default function Testimonials() {
                         </svg>
                     </button>
 
-                    {/* Gradient overlays */}
-                    <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#f5f5f5] to-transparent z-10 pointer-events-none" />
-                    <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#f5f5f5] to-transparent z-10 pointer-events-none" />
+                    {/* Gradient overlays (full viewport edges) */}
+                    <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-screen z-10 pointer-events-none">
+                        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#f5f5f5] to-transparent" />
+                        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#f5f5f5] to-transparent" />
+                    </div>
 
                     {/* Slider track with fixed height */}
                     <div

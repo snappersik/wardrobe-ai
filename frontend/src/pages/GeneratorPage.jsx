@@ -27,6 +27,7 @@ const GeneratorPage = () => {
     // Сгенерированные образы
     const [outfits, setOutfits] = useState([])
     const [currentIndex, setCurrentIndex] = useState(0)
+    const [carouselIndex, setCarouselIndex] = useState(0)
 
     // Статистика сессии
     const [stats, setStats] = useState({ saved: 0, favorited: 0, skipped: 0 })
@@ -35,49 +36,88 @@ const GeneratorPage = () => {
     const [generating, setGenerating] = useState(false)
     const [swipeDirection, setSwipeDirection] = useState(null)
 
+    const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
+
     // Загрузка погоды при монтировании
     useEffect(() => {
         fetchWeather()
     }, [])
 
+    const goCarouselNext = useCallback(() => {
+        setCarouselIndex(prev => {
+            if (outfits.length === 0) return 0
+            return (prev + 1) % outfits.length
+        })
+    }, [outfits.length])
+
+    const goCarouselPrev = useCallback(() => {
+        setCarouselIndex(prev => {
+            if (outfits.length === 0) return 0
+            return (prev - 1 + outfits.length) % outfits.length
+        })
+    }, [outfits.length])
+
     // Keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (stage !== 'swipe') return
+            const targetTag = e.target?.tagName?.toLowerCase()
+            if (targetTag === 'input' || targetTag === 'textarea' || e.target?.isContentEditable) return
 
-            switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault()
-                    handleFeedback('dislike')
-                    break
-                case 'ArrowRight':
-                    e.preventDefault()
-                    handleFeedback('like')
-                    break
-                case 'ArrowUp':
-                    e.preventDefault()
-                    handleFeedback('favorite')
-                    break
-                case 'ArrowDown':
-                    e.preventDefault()
-                    handleFeedback('save')
-                    break
-                case 'Escape':
-                    e.preventDefault()
-                    setStage('conditions')
-                    break
-                default:
-                    break
+            if (stage === 'swipe') {
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault()
+                        handleFeedback('dislike')
+                        break
+                    case 'ArrowRight':
+                        e.preventDefault()
+                        handleFeedback('like')
+                        break
+                    case 'ArrowUp':
+                        e.preventDefault()
+                        handleFeedback('favorite')
+                        break
+                    case 'ArrowDown':
+                        e.preventDefault()
+                        handleFeedback('save')
+                        break
+                    case 'Escape':
+                        e.preventDefault()
+                        setStage('conditions')
+                        break
+                    default:
+                        break
+                }
+                return
+            }
+
+            if (stage === 'results' && outfits.length > 0) {
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault()
+                        goCarouselPrev()
+                        break
+                    case 'ArrowRight':
+                        e.preventDefault()
+                        goCarouselNext()
+                        break
+                    case 'Escape':
+                        e.preventDefault()
+                        setStage('conditions')
+                        break
+                    default:
+                        break
+                }
             }
         }
 
         window.addEventListener('keydown', handleKeyDown)
         return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [stage, currentIndex, outfits])
+    }, [stage, currentIndex, outfits.length, goCarouselPrev, goCarouselNext])
 
     const fetchWeather = async () => {
         try {
-            const { data } = await api.get('/outfits/weather')
+            const { data } = await api.get('/outfits/weather/current')
             setWeather(data)
             setWeatherCategory(data.category || 'warm')
         } catch (error) {
@@ -99,6 +139,7 @@ const GeneratorPage = () => {
             const { data } = await api.post(`/outfits/generate?occasion=${occasion}&weather_category=${weatherCategory}&count=10`)
             setOutfits(data)
             setCurrentIndex(0)
+            setCarouselIndex(0)
             setStats({ saved: 0, favorited: 0, skipped: 0 })
             setStage('swipe')
         } catch (error) {
@@ -157,6 +198,7 @@ const GeneratorPage = () => {
         setStage('conditions')
         setOutfits([])
         setCurrentIndex(0)
+        setCarouselIndex(0)
     }
 
     // Получение цвета для score
@@ -336,7 +378,7 @@ const GeneratorPage = () => {
                                         {outfits[currentIndex]?.items.map((item, idx) => (
                                             <div key={idx} className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
                                                 <img
-                                                    src={`http://localhost:8000/${item.image_path}`}
+                                                    src={`${mediaBaseUrl}/${item.image_path}`}
                                                     alt={item.filename}
                                                     className="w-full h-full object-contain"
                                                 />
@@ -447,6 +489,114 @@ const GeneratorPage = () => {
                                 <div className="text-sm text-gray-500">Пропущено</div>
                             </div>
                         </div>
+
+                        {/* Generated outfits carousel */}
+                        {outfits.length > 0 && (
+                            <div className="space-y-4 text-left">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">Сгенерированные образы</h3>
+                                    <span className="text-sm text-gray-500">
+                                        {carouselIndex + 1} из {outfits.length}
+                                    </span>
+                                </div>
+
+                                <div className="relative">
+                                    {outfits.length > 1 && (
+                                        <>
+                                            <button
+                                                onClick={goCarouselPrev}
+                                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-all"
+                                                aria-label="Предыдущий образ"
+                                            >
+                                                <Icon name="chevron-left" size={20} />
+                                            </button>
+                                            <button
+                                                onClick={goCarouselNext}
+                                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-all"
+                                                aria-label="Следующий образ"
+                                            >
+                                                <Icon name="chevron-right" size={20} />
+                                            </button>
+                                        </>
+                                    )}
+
+                                    <div className="overflow-hidden rounded-2xl">
+                                        <div
+                                            className="flex transition-transform duration-300 ease-out"
+                                            style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
+                                        >
+                                            {outfits.map((outfit, idx) => (
+                                                <div key={idx} className="min-w-full px-1">
+                                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            {outfit.items?.slice(0, 4).map((item, itemIdx) => {
+                                                                const showMoreOverlay = itemIdx === 3 && outfit.items?.length > 4
+                                                                return (
+                                                                    <div key={itemIdx} className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden">
+                                                                        <img
+                                                                            src={`${mediaBaseUrl}/${item.image_path}`}
+                                                                            alt={item.filename}
+                                                                            className="w-full h-full object-contain"
+                                                                        />
+                                                                        {showMoreOverlay && (
+                                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-sm font-semibold">
+                                                                                +{outfit.items.length - 4}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
+
+                                                        <div className="mt-3">
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <h4 className="font-bold text-gray-900 truncate">{outfit.name}</h4>
+                                                                <span className={`text-sm font-semibold ${getScoreColor(outfit.score)}`}>
+                                                                    {Math.round(outfit.score * 100)}%
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-1 text-xs text-gray-500 flex items-center gap-2">
+                                                                <span>Повод: {outfit.occasion}</span>
+                                                                <span>•</span>
+                                                                <span>Погода: {outfit.weather}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {outfits.length > 1 && (
+                                        <>
+                                            <button
+                                                onClick={goCarouselPrev}
+                                                className="absolute inset-y-0 left-0 w-1/5 z-10 cursor-pointer bg-gradient-to-r from-black/5 to-transparent opacity-0 hover:opacity-100 transition-opacity"
+                                                aria-label="Перелистнуть влево"
+                                            />
+                                            <button
+                                                onClick={goCarouselNext}
+                                                className="absolute inset-y-0 right-0 w-1/5 z-10 cursor-pointer bg-gradient-to-l from-black/5 to-transparent opacity-0 hover:opacity-100 transition-opacity"
+                                                aria-label="Перелистнуть вправо"
+                                            />
+                                        </>
+                                    )}
+                                </div>
+
+                                {outfits.length > 1 && (
+                                    <div className="flex justify-center gap-2">
+                                        {outfits.map((_, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setCarouselIndex(idx)}
+                                                className={`h-2 rounded-full transition-all duration-300 ${idx === carouselIndex ? 'w-6 bg-primary' : 'w-2 bg-gray-300 hover:bg-gray-400'}`}
+                                                aria-label={`Перейти к образу ${idx + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Action Buttons */}
                         <div className="space-y-3 max-w-xs mx-auto">

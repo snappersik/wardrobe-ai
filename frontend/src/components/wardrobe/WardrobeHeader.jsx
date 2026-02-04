@@ -21,7 +21,7 @@ import Icon from '../common/Icon'
  * @param {function} setSortOption - Функция для изменения сортировки
  * @param {number} itemCount - Количество вещей (для отображения в счётчике)
  */
-export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption, setSortOption, itemCount }) {
+export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption, setSortOption, itemCount, onOpenFilters, hasActiveFilters }) {
     return (
         // Флекс-контейнер: колонка на мобильных, ряд на десктопе
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -61,8 +61,15 @@ export default function WardrobeHeader({ searchQuery, setSearchQuery, sortOption
                 {/* --------------------------------------------------------- */}
                 {/* КНОПКА ФИЛЬТРОВ */}
                 {/* --------------------------------------------------------- */}
-                <button className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:border-primary hover:text-primary transition-colors">
+                <button
+                    onClick={onOpenFilters}
+                    className={`relative p-2.5 bg-white border rounded-xl transition-colors ${hasActiveFilters ? 'border-primary text-primary' : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'}`}
+                    aria-label="Фильтры"
+                >
                     <Icon name="sliders-horizontal" size={20} />
+                    {hasActiveFilters && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full ring-2 ring-white" />
+                    )}
                 </button>
             </div>
         </div>

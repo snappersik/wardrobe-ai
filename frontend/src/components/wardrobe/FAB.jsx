@@ -60,7 +60,7 @@ export default function FAB() {
                         </span>
                         {/* Круглая кнопка с иконкой */}
                         <div className="w-12 h-12 bg-white text-gray-700 rounded-full shadow-lg shadow-gray-200 flex items-center justify-center group-hover:bg-gray-50 group-hover:scale-110 transition-all duration-200">
-                            <Icon name="shirt" size={20} />
+                            <Icon name="hanger" size={20} />
                         </div>
                     </Link>
 

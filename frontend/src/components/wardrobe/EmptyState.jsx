@@ -23,7 +23,7 @@ export default function EmptyState({ onAddClick }) {
             {/* ============================================================= */}
             {/* Круглый контейнер с иконкой одежды */}
             <div className="w-48 h-48 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <Icon name="shirt" size={60} className="text-gray-300" />
+                <Icon name="hanger" size={60} className="text-gray-300" />
             </div>
 
             {/* ============================================================= */}

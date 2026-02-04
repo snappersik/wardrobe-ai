@@ -58,6 +58,8 @@ export default function OutfitsPage() {
     // Список возможных поводов для фильтрации
     const occasions = ['Все', 'Повседневный', 'Офис', 'Вечеринка', 'Спорт', 'Свидание']
 
+    const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
+
     // ==========================================================================
     // ЗАГРУЗКА ДАННЫХ
     // ==========================================================================
@@ -70,13 +72,21 @@ export default function OutfitsPage() {
         try {
             setLoading(true)
             const { data } = await api.get('/outfits/my-outfits')
+            const detailed = await Promise.all(data.map(async (outfit) => {
+                try {
+                    const detail = await api.get(`/outfits/${outfit.id}`)
+                    return detail.data
+                } catch (error) {
+                    return outfit
+                }
+            }))
 
-            const mappedOutfits = data.map(outfit => ({
+            const mappedOutfits = detailed.map(outfit => ({
                 id: outfit.id,
                 name: outfit.name || 'Без названия',
                 occasion: outfit.target_season || 'Повседневный',
-                items: outfit.items ? outfit.items.length : '?',
-                image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=300',
+                itemsCount: Array.isArray(outfit.items) ? outfit.items.length : 0,
+                previewItems: Array.isArray(outfit.items) ? outfit.items.slice(0, 4) : [],
                 date: new Date(outfit.created_at).toLocaleDateString()
             }))
 
@@ -200,18 +210,47 @@ export default function OutfitsPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 md:pb-0">
                         {filteredOutfits.map(outfit => (
-                            <div key={outfit.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 card-hover">
-                                <div className="relative h-48 bg-gray-100">
-                                    <img src={outfit.image} alt={outfit.name} className="w-full h-full object-cover" />
+                            <button
+                                key={outfit.id}
+                                type="button"
+                                onClick={() => navigate(`/outfits/${outfit.id}`)}
+                                className="text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 card-hover"
+                            >
+                                <div className="relative h-48 bg-gray-50 p-3">
+                                    <div className="grid grid-cols-2 gap-2 h-full">
+                                        {outfit.previewItems.length > 0 ? (
+                                            outfit.previewItems.map((item, idx) => {
+                                                const showMoreOverlay = idx === 3 && outfit.itemsCount > 4
+                                                return (
+                                                    <div key={item.id || idx} className="relative rounded-xl overflow-hidden bg-gray-100">
+                                                        <img
+                                                            src={`${mediaBaseUrl}/${item.image_path}`}
+                                                            alt={item.filename || outfit.name}
+                                                            className="w-full h-full object-contain"
+                                                        />
+                                                        {showMoreOverlay && (
+                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-sm font-semibold">
+                                                                +{outfit.itemsCount - 4}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })
+                                        ) : (
+                                            <div className="col-span-2 h-full rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                                                Нет превью
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="absolute top-3 right-3 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium">
                                         {outfit.occasion}
                                     </div>
                                 </div>
                                 <div className="p-4">
                                     <h3 className="font-bold text-gray-900 mb-1">{outfit.name}</h3>
-                                    <p className="text-sm text-gray-500">{outfit.items} вещей</p>
+                                    <p className="text-sm text-gray-500">{outfit.itemsCount} вещей</p>
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 )}
@@ -237,7 +276,7 @@ export default function OutfitsPage() {
                                 className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                             >
                                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow">
-                                    <Icon name="shirt" size={24} className="text-gray-700" />
+                                    <Icon name="hanger" size={24} className="text-gray-700" />
                                 </div>
                                 <div className="text-left">
                                     <p className="font-bold text-gray-900">Вручную</p>

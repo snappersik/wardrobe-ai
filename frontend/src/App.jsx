@@ -28,6 +28,7 @@ import RegisterPage from './pages/RegisterPage'   // Страница регис
 import WardrobePage from './pages/WardrobePage'       // Мой гардероб (список вещей)
 import OutfitsPage from './pages/OutfitsPage'         // Мои образы (наряды)
 import OutfitCreatePage from './pages/OutfitCreatePage' // Создание образа вручную
+import OutfitDetailPage from './pages/OutfitDetailPage' // Детали образа
 import GeneratorPage from './pages/GeneratorPage'     // AI генератор образов
 import CalendarPage from './pages/CalendarPage'       // Календарь нарядов
 import ProfilePage from './pages/ProfilePage'         // Профиль пользователя
@@ -70,6 +71,7 @@ export default function App() {
                 <Route path="/wardrobe" element={<ProtectedRoute><AuthLayout><WardrobePage /></AuthLayout></ProtectedRoute>} />
                 <Route path="/outfits" element={<ProtectedRoute><AuthLayout><OutfitsPage /></AuthLayout></ProtectedRoute>} />
                 <Route path="/outfits/create" element={<ProtectedRoute><AuthLayout><OutfitCreatePage /></AuthLayout></ProtectedRoute>} />
+                <Route path="/outfits/:outfitId" element={<ProtectedRoute><AuthLayout><OutfitDetailPage /></AuthLayout></ProtectedRoute>} />
                 <Route path="/generator" element={<ProtectedRoute><AuthLayout><GeneratorPage /></AuthLayout></ProtectedRoute>} />
                 <Route path="/calendar" element={<ProtectedRoute><AuthLayout><CalendarPage /></AuthLayout></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><AuthLayout><ProfilePage /></AuthLayout></ProtectedRoute>} />

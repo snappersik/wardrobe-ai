@@ -21,7 +21,7 @@ import { Link } from 'react-router-dom'
 export default function MobileNav({ activePage = 'home' }) {
     // Конфигурация пунктов навигации
     const navItems = [
-        { id: 'wardrobe', icon: 'shirt', label: 'Гардероб', href: '/wardrobe' },
+        { id: 'wardrobe', icon: 'hanger', label: 'Гардероб', href: '/wardrobe' },
         { id: 'outfits', icon: 'layers', label: 'Образы', href: '/outfits' },
         // Главная кнопка "Создать" выделена особым стилем
         { id: 'create', icon: 'plus-square', label: 'Создать', href: '/generator', isMain: true },

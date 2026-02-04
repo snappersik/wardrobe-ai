@@ -11,7 +11,7 @@ export default function Footer() {
                 <div className="flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white">
-                            <Icon name="shirt" size={20} />
+                            <Icon name="hanger" size={20} />
                         </div>
                         <span className="font-bold text-xl">Умный Гардероб</span>
                     </div>
