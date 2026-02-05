@@ -13,7 +13,9 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [isDraggingAvatar, setIsDraggingAvatar] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
     const fileInputRef = useRef(null)
+    const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
 
     const [formData, setFormData] = useState({
         username: '',
@@ -21,7 +23,8 @@ export default function ProfilePage() {
         email: '',
         phone: '',
         city: '',
-        notifications: true
+        notifications: true,
+        avatarPreview: null
     })
 
     // Заполняем форму данными пользователя при загрузке
@@ -33,9 +36,10 @@ export default function ProfilePage() {
                 name: user.full_name || '',
                 email: user.email || '',
                 city: user.city || '',
+                avatarPreview: user.avatar_path ? `${mediaBaseUrl}/${user.avatar_path}` : null
             }))
         }
-    }, [user])
+    }, [user, mediaBaseUrl])
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type })
@@ -66,7 +70,7 @@ export default function ProfilePage() {
             const objectUrl = URL.createObjectURL(file)
             setFormData(prev => ({ ...prev, avatarPreview: objectUrl }))
             showToast('Фото выбрано', 'success')
-            return () => URL.revokeObjectURL(objectUrl)
+            // No need to return cleanup function here, it's handled by useEffect or component unmount
         }
     }
 
@@ -124,6 +128,7 @@ export default function ProfilePage() {
                 city: formData.city
             })
             showToast('Профиль успешно обновлён!')
+            setIsEditing(false) // Выход из режима редактирования после сохранения
         } catch (error) {
             console.error(error)
             showToast(error.response?.data?.detail || 'Ошибка сохранения', 'error')
@@ -145,30 +150,32 @@ export default function ProfilePage() {
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <UniversalHeader activePage="profile" user={user} />
 
-            <main className="flex-grow container mx-auto max-w-2xl px-4 md:px-6 py-6">
-                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
-                    <div className="flex items-center gap-6 mb-8">
+            <main className="flex-grow container mx-auto max-w-4xl px-4 md:px-6 py-6">
+                <div className="bg-gradient-to-r from-pink-50 via-white to-purple-50 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
+                    <div className="flex items-center gap-6 mb-6">
                         <div
-                            className={`relative cursor-pointer transition-all ${isDraggingAvatar ? 'scale-110 ring-4 ring-primary/30 rounded-full' : ''}`}
-                            onDragOver={handleAvatarDragOver}
-                            onDragEnter={handleAvatarDragEnter}
-                            onDragLeave={handleAvatarDragLeave}
-                            onDrop={handleAvatarDrop}
-                            onClick={() => fileInputRef.current?.click()}
+                            className={`relative cursor-pointer transition-all ${isEditing && isDraggingAvatar ? 'scale-110 ring-4 ring-primary/30 rounded-full' : ''}`}
+                            onDragOver={isEditing ? handleAvatarDragOver : undefined}
+                            onDragEnter={isEditing ? handleAvatarDragEnter : undefined}
+                            onDragLeave={isEditing ? handleAvatarDragLeave : undefined}
+                            onDrop={isEditing ? handleAvatarDrop : undefined}
+                            onClick={() => isEditing && fileInputRef.current?.click()}
                         >
                             <img
-                                src={formData.avatarPreview || (user?.avatar_path ? `http://localhost:8000/${user.avatar_path}` : 'https://ui-avatars.com/api/?name=' + (user?.full_name || user?.username || 'User'))}
+                                src={formData.avatarPreview || (user?.avatar_path ? `${mediaBaseUrl}/${user.avatar_path}` : 'https://ui-avatars.com/api/?name=' + (user?.full_name || user?.username || 'User'))}
                                 alt={user?.name}
-                                className={`w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg ${isDraggingAvatar ? 'opacity-50' : ''}`}
+                                className={`w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg ${isEditing && isDraggingAvatar ? 'opacity-50' : ''}`}
                             />
-                            {isDraggingAvatar ? (
-                                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 rounded-full">
-                                    <Icon name="download" size={24} className="text-primary" />
-                                </div>
-                            ) : (
-                                <div className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-colors flex items-center justify-center">
-                                    <Icon name="camera" size={16} />
-                                </div>
+                            {isEditing && (
+                                isDraggingAvatar ? (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-primary/20 rounded-full">
+                                        <Icon name="download" size={24} className="text-primary" />
+                                    </div>
+                                ) : (
+                                    <div className="absolute bottom-0 right-0 h-8 w-8 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-colors flex items-center justify-center">
+                                        <Icon name="camera" size={16} />
+                                    </div>
+                                )
                             )}
                             <input
                                 type="file"
@@ -176,14 +183,30 @@ export default function ProfilePage() {
                                 className="hidden"
                                 accept="image/*"
                                 onChange={handleFileChange}
+                                disabled={!isEditing}
                             />
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">{user?.full_name || user?.username}</h1>
-                            <p className="text-gray-500">{user?.email}</p>
-                            <span className="inline-block mt-2 px-3 py-1 bg-pink-100 text-primary rounded-full text-sm font-medium">
-                                Free Plan
-                            </span>
+                        <div className="flex-1 flex justify-between items-start">
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{user?.full_name || user?.username}</h1>
+                                <p className="text-gray-500">{user?.email}</p>
+                                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-100">
+                                        <Icon name="map-pin" size={14} />
+                                        {user?.city || 'Город не указан'}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-100">
+                                        Free Plan
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsEditing(!isEditing)}
+                                className={`p-2 rounded-full transition-colors ${isEditing ? 'bg-primary text-white shadow-lg' : 'bg-white text-gray-400 hover:text-primary hover:bg-gray-50'}`}
+                                title={isEditing ? "Отменить редактирование" : "Редактировать профиль"}
+                            >
+                                <Icon name={isEditing ? "x" : "edit-2"} size={24} />
+                            </button>
                         </div>
                     </div>
 
@@ -196,7 +219,8 @@ export default function ProfilePage() {
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                    disabled={!isEditing}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-gray-50 disabled:text-gray-500"
                                 />
                             </div>
                             <div>
@@ -206,7 +230,8 @@ export default function ProfilePage() {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                    disabled={true}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
                                 />
                             </div>
                             <div>
@@ -216,7 +241,8 @@ export default function ProfilePage() {
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                    disabled={!isEditing}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-gray-50 disabled:text-gray-500"
                                 />
                             </div>
                             <div>
@@ -228,8 +254,9 @@ export default function ProfilePage() {
                                     value={formData.city}
                                     onChange={handleChange}
                                     onBlur={handleCityBlur}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                    placeholder="Начните вводить название..."
+                                    disabled={!isEditing}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-gray-50 disabled:text-gray-500"
+                                    placeholder={isEditing ? "Начните вводить название..." : ""}
                                 />
                                 <datalist id="city-list">
                                     {cities.map((city, index) => (
@@ -239,28 +266,30 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-100 pt-6">
+                        {/* <div className="border-t border-gray-100 pt-6">
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     name="notifications"
                                     checked={formData.notifications}
                                     onChange={handleChange}
-                                    className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+                                    className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary accent-primary"
                                 />
                                 <span className="text-gray-700">Получать уведомления о новых образах</span>
                             </label>
-                        </div>
+                        </div> */}
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full btn btn-primary py-3.5 font-bold"
-                        >
-                            {loading ? (
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                            ) : 'Сохранить изменения'}
-                        </button>
+                        {isEditing && (
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full btn btn-primary py-3.5 font-bold"
+                            >
+                                {loading ? (
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                                ) : 'Сохранить изменения'}
+                            </button>
+                        )}
                     </form>
                 </div>
 

@@ -1,132 +1,263 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import UniversalHeader from '../../components/layout/UniversalHeader';
-import StatCard from '../../components/admin/StatCard';
-import BarChart from '../../components/admin/BarChart';
-import DonutChart from '../../components/admin/DonutChart';
-import QuickActions from '../../components/admin/QuickActions';
-import api from '../../api/axios';
-import { useAuth } from '../../context/AuthContext';
+﻿import { useEffect, useMemo, useState } from 'react'
+import AdminLayout from '../../components/admin/AdminLayout'
+import Icon from '../../components/common/Icon'
+import api from '../../api/axios'
+import { useAuth } from '../../context/AuthContext'
 
-const AdminDashboardPage = () => {
-    const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [dashboardData, setDashboardData] = useState({
-        total_users: 0,
-        total_items: 0,
-        total_outfits: 0,
-        recent_logs: 0
-    });
+const rangeLabels = {
+    today: 'Сегодня',
+    '7days': 'За последние 7 дней',
+    '30days': 'За последние 30 дней',
+    year: 'За год'
+}
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const { data } = await api.get('/admin/stats');
-                setDashboardData(data);
-            } catch (error) {
-                console.error('Failed to fetch admin stats:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+const formatNumber = (value) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
+    return new Intl.NumberFormat('ru-RU').format(value)
+}
 
-        if (user?.role === 'admin') {
-            fetchStats();
-        }
-    }, [user]);
+const formatChange = (value) => {
+    const rounded = Math.abs(value).toFixed(1)
+    return value >= 0 ? `+${rounded}%` : `-${rounded}%`
+}
 
-    const stats = [
-        { label: 'Всего пользователей', value: dashboardData.total_users, icon: 'users', color: 'bg-blue-500' },
-        { label: 'Логи за 24ч', value: dashboardData.recent_logs, icon: 'activity', color: 'bg-green-500' },
-        { label: 'Вещей в базе', value: dashboardData.total_items, icon: 'layers', color: 'bg-purple-500' },
-        { label: 'Образов создано', value: dashboardData.total_outfits, icon: 'layout', color: 'bg-pink-500' },
-    ];
+const getWeekdayLabel = (isoDate) => {
+    const date = new Date(isoDate)
+    return new Intl.DateTimeFormat('ru-RU', { weekday: 'short' }).format(date)
+}
 
-    const userGrowthData = [
-        { label: 'Авг', value: 65 },
-        { label: 'Сен', value: 72 },
-        { label: 'Окт', value: 78 },
-        { label: 'Ноя', value: 85 },
-        { label: 'Дек', value: 92 },
-        { label: 'Янв', value: 100 },
-    ];
+const getDateLabel = (isoDate) => {
+    const date = new Date(isoDate)
+    return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit' }).format(date)
+}
 
-    const outfitsByCategory = [
-        { label: 'Повседневные', value: 45, color: '#ff91af' },
-        { label: 'Деловые', value: 25, color: '#8b5cf6' },
-        { label: 'Спортивные', value: 15, color: '#10b981' },
-        { label: 'Вечерние', value: 15, color: '#f59e0b' },
-    ];
+const MetricCard = ({ title, value, change, trend, icon, colorClass, glowClass }) => (
+    <div className="relative overflow-hidden rounded-2xl bg-white/80 border border-white/70 shadow-sm p-5">
+        <div className="relative z-10">
+            <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{value}</h3>
+            <div className={`flex items-center gap-1.5 text-xs font-bold ${trend === 'up' ? 'text-green-600' : 'text-red-500'}`}>
+                <Icon name={trend === 'up' ? 'trending-up' : 'trending-down'} size={14} />
+                <span>{change}</span>
+                <span className="text-gray-400 font-normal ml-1">vs прошлый период</span>
+            </div>
+        </div>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm ${colorClass}`}>
+            <Icon name={icon} size={20} />
+        </div>
+        <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-20 ${glowClass}`} />
+    </div>
+)
 
-    const weeklyActivity = [
-        { label: 'Пн', value: 120, showValue: true },
-        { label: 'Вт', value: 150, showValue: true },
-        { label: 'Ср', value: 180, showValue: true },
-        { label: 'Чт', value: 140, showValue: true },
-        { label: 'Пт', value: 200, showValue: true },
-        { label: 'Сб', value: 250, showValue: true },
-        { label: 'Вс', value: 190, showValue: true },
-    ];
+const LineChartCard = ({ title, data }) => {
+    if (!data || data.length === 0) {
+        return (
+            <div className="bg-white/80 rounded-2xl p-6 shadow-sm border border-white/70 h-full flex items-center justify-center text-gray-400">
+                Нет данных
+            </div>
+        )
+    }
+    const values = data.map(d => d.value)
+    const maxValue = Math.max(...values, 1)
+    const points = data.map((item, idx) => {
+        const x = (idx / Math.max(data.length - 1, 1)) * 100
+        const y = 100 - (item.value / maxValue) * 80 - 10
+        return `${x},${y}`
+    })
 
-    const quickActions = [
-        { icon: 'mail', label: 'Рассылка' },
-        { icon: 'settings', label: 'Настройки' },
-        { icon: 'database', label: 'База данных' },
-        { icon: 'pencil', label: 'Редактор', to: '/admin/editor' },
-    ];
+    const pathD = `M${points.join(' L')}`
+    const areaD = `${pathD} L100,100 L0,100 Z`
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <UniversalHeader activePage="admin" user={user} />
+        <div className="bg-white/80 rounded-2xl p-6 shadow-sm border border-white/70">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-gray-900 text-lg">{title}</h3>
+                <button className="text-gray-400 hover:text-primary transition-colors">
+                    <Icon name="info" size={18} />
+                </button>
+            </div>
+            <div className="h-64">
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <defs>
+                        <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ff91af" stopOpacity="0.35" />
+                            <stop offset="100%" stopColor="#ff91af" stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+                    <path d={areaD} fill="url(#lineGradient)" />
+                    <path d={pathD} fill="none" stroke="#ff91af" strokeWidth="2" strokeLinecap="round" />
+                    {data.map((item, idx) => {
+                        const [x, y] = points[idx].split(',')
+                        return (
+                            <circle key={item.date} cx={x} cy={y} r="2.5" fill="#fff" stroke="#ff91af" strokeWidth="1.5" />
+                        )
+                    })}
+                </svg>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                {data.map((item, idx) => (
+                    <span key={item.date} className="flex-1 text-center">
+                        {data.length <= 10 ? getWeekdayLabel(item.date) : (idx % 5 === 0 ? getDateLabel(item.date) : '')}
+                    </span>
+                ))}
+            </div>
+        </div>
+    )
+}
 
-            <main className="flex-grow container mx-auto max-w-7xl px-4 md:px-6 py-6">
-                <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Панель администратора</h1>
+const BarChartCard = ({ title, data }) => {
+    if (!data || data.length === 0) {
+        return (
+            <div className="bg-white/80 rounded-2xl p-6 shadow-sm border border-white/70 h-full flex items-center justify-center text-gray-400">
+                Нет данных
+            </div>
+        )
+    }
+    const maxValue = Math.max(...data.map(d => d.value), 1)
+
+    return (
+        <div className="bg-white/80 rounded-2xl p-6 shadow-sm border border-white/70">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-gray-900 text-lg">{title}</h3>
+                <button className="text-gray-400 hover:text-primary transition-colors">
+                    <Icon name="info" size={18} />
+                </button>
+            </div>
+            <div className="h-64 flex items-end justify-between gap-3">
+                {data.map(item => (
+                    <div key={item.date} className="flex-1 flex flex-col items-center gap-2">
+                        <div
+                            className="w-full rounded-xl bg-gradient-to-t from-purple-500 to-purple-300"
+                            style={{ height: `${(item.value / maxValue) * 100}%` }}
+                        />
+                        <span className="text-xs text-gray-400">
+                            {data.length <= 10 ? getWeekdayLabel(item.date) : getDateLabel(item.date)}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+const AdminDashboardPage = () => {
+    const { user } = useAuth()
+    const [dateRange, setDateRange] = useState('7days')
+    const [loading, setLoading] = useState(true)
+    const [metrics, setMetrics] = useState(null)
+    const [series, setSeries] = useState({ registrations: [], generator_activity: [] })
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                setLoading(true)
+                const { data } = await api.get('/admin/analytics', {
+                    params: { range: dateRange }
+                })
+                setMetrics(data.metrics)
+                setSeries(data.series)
+            } catch (error) {
+                console.error('Failed to fetch admin analytics:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (user?.role === 'admin') {
+            fetchAnalytics()
+        }
+    }, [user, dateRange])
+
+    const metricCards = useMemo(() => {
+        if (!metrics) return []
+        return [
+            {
+                title: 'Всего пользователей',
+                value: formatNumber(metrics.total_users.value || 0),
+                change: formatChange(metrics.total_users.change || 0),
+                trend: metrics.total_users.trend,
+                icon: 'users',
+                colorClass: 'bg-blue-500',
+                glowClass: 'bg-blue-500'
+            },
+            {
+                title: dateRange === 'today' ? 'Активные сегодня' : 'Активные за период',
+                value: formatNumber(metrics.active_users.value || 0),
+                change: formatChange(metrics.active_users.change || 0),
+                trend: metrics.active_users.trend,
+                icon: 'activity',
+                colorClass: 'bg-green-500',
+                glowClass: 'bg-green-500'
+            },
+            {
+                title: 'Создано образов',
+                value: formatNumber(metrics.created_outfits.value || 0),
+                change: formatChange(metrics.created_outfits.change || 0),
+                trend: metrics.created_outfits.trend,
+                icon: 'layers',
+                colorClass: 'bg-pink-500',
+                glowClass: 'bg-pink-500'
+            },
+            {
+                title: 'Загружено вещей',
+                value: formatNumber(metrics.uploaded_items.value || 0),
+                change: formatChange(metrics.uploaded_items.change || 0),
+                trend: metrics.uploaded_items.trend,
+                icon: 'hanger',
+                colorClass: 'bg-purple-500',
+                glowClass: 'bg-purple-500'
+            }
+        ]
+    }, [metrics, dateRange])
+
+    return (
+        <AdminLayout activePage="dashboard">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                <h1 className="text-2xl font-bold text-gray-900">Панель управления</h1>
+
+                <div className="relative">
+                    <select
+                        value={dateRange}
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="appearance-none bg-white/80 border border-white/70 text-gray-700 py-2.5 pl-4 pr-10 rounded-lg focus:outline-none focus:border-primary cursor-pointer text-sm font-medium shadow-sm hover:bg-white transition-colors"
+                    >
+                        {Object.entries(rangeLabels).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                        ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <Icon name="chevron-down" size={16} />
+                    </div>
                 </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {stats.map((stat, idx) => (
-                        <StatCard key={idx} {...stat} />
+            {loading ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-32 rounded-2xl bg-white/70 animate-pulse" />
                     ))}
                 </div>
-
-                <div className="grid lg:grid-cols-2 gap-6 mb-6">
-                    <BarChart
-                        data={userGrowthData}
-                        title="Рост пользователей"
-                        colorFrom="from-primary"
-                        colorTo="to-pink-300"
-                        footer={{
-                            left: '+35% за полгода',
-                            right: '↑ 12,345 пользователей',
-                            rightColor: 'text-green-600'
-                        }}
-                    />
-                    <QuickActions actions={quickActions} />
+            ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {metricCards.map((card, idx) => (
+                        <MetricCard key={idx} {...card} />
+                    ))}
                 </div>
+            )}
 
-                <div className="grid lg:grid-cols-2 gap-6">
-                    <DonutChart
-                        data={outfitsByCategory}
-                        title="Образы по категориям"
-                        centerValue="45.6K"
-                        centerLabel="образов"
-                    />
-                    <BarChart
-                        data={weeklyActivity}
-                        title="Активность по дням"
-                        colorFrom="from-violet-500"
-                        colorTo="to-purple-300"
-                        footer={{
-                            left: 'Среднее: 176 действий/день',
-                            right: 'Пик: Суббота',
-                            rightColor: 'text-purple-600'
-                        }}
-                    />
-                </div>
-            </main>
-        </div>
-    );
-};
+            <div className="grid lg:grid-cols-2 gap-6 mt-6">
+                <LineChartCard
+                    title="Рост аудитории"
+                    data={series.registrations || []}
+                />
+                <BarChartCard
+                    title="Активность генератора"
+                    data={series.generator_activity || []}
+                />
+            </div>
+        </AdminLayout>
+    )
+}
 
-export default AdminDashboardPage;
+export default AdminDashboardPage

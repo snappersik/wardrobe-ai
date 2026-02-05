@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import UniversalHeader from '../../components/layout/UniversalHeader';
+import AdminLayout from '../../components/admin/AdminLayout';
 import Icon from '../../components/common/Icon';
 
 // Initial Mock Data for Sections
@@ -24,13 +24,6 @@ const SECTION_TEMPLATES = [
 ];
 
 const AdminEditorPage = () => {
-    const user = {
-        name: 'Анна Петрова',
-        email: 'anna@example.com',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-        isAdmin: true
-    };
-
     const [sections, setSections] = useState(INITIAL_SECTIONS);
     const [selectedSectionId, setSelectedSectionId] = useState(null);
     const [history, setHistory] = useState([INITIAL_SECTIONS]);
@@ -168,9 +161,7 @@ const AdminEditorPage = () => {
     const selectedSection = sections.find(s => s.id === selectedSectionId);
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col">
-            <UniversalHeader activePage="admin" user={user} />
-
+        <AdminLayout activePage="editor">
             {/* Editor Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -445,7 +436,7 @@ const AdminEditorPage = () => {
                     animation: bounce-in 0.4s ease-out;
                 }
             `}</style>
-        </div>
+        </AdminLayout>
     );
 };
 

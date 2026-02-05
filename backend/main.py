@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Импорт роутеров API из модулей приложения
 from app.api import api_router
-from app.api import users, clothing, outfits
+from app.api import users, clothing, outfits, calendar
 
 # Импорт движка базы данных для создания таблиц
 from app.db.database import engine
@@ -69,6 +69,9 @@ app.include_router(clothing.router, prefix="/api")
 
 # Роутер образов: создание, редактирование, удаление нарядов
 app.include_router(outfits.router, prefix="/api")
+
+# Роутер календаря нарядов
+app.include_router(calendar.router, prefix="/api")
 
 # Роутер админки
 from app.api import admin

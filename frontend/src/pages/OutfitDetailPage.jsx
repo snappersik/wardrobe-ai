@@ -18,6 +18,7 @@ export default function OutfitDetailPage() {
     const [toast, setToast] = useState(null)
 
     const [showAddModal, setShowAddModal] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [wardrobeItems, setWardrobeItems] = useState([])
     const [selectedToAdd, setSelectedToAdd] = useState([])
 
@@ -32,6 +33,18 @@ export default function OutfitDetailPage() {
     const showToast = (message, type = 'success') => {
         setToast({ message, type })
         setTimeout(() => setToast(null), 2500)
+    }
+
+    const handleDeleteOutfit = async () => {
+        try {
+            await api.delete(`/outfits/${outfitId}`)
+            showToast('Образ удалён', 'success')
+            // Небольшая задержка перед навигацией, чтобы пользователь увидел тост
+            setTimeout(() => navigate('/outfits'), 500)
+        } catch (error) {
+            console.error('Failed to delete outfit', error)
+            showToast('Не удалось удалить образ', 'error')
+        }
     }
 
     const fetchOutfit = async () => {
@@ -222,9 +235,17 @@ export default function OutfitDetailPage() {
                             <button
                                 onClick={handleSaveMeta}
                                 disabled={saving}
-                                className="w-full btn btn-primary py-3 font-bold disabled:opacity-50"
+                                className="w-full btn btn-primary py-3 font-bold disabled:opacity-50 mb-4"
                             >
                                 {saving ? 'Сохраняем...' : 'Сохранить изменения'}
+                            </button>
+
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-100 text-red-600 hover:bg-red-50 transition-colors font-medium border-none"
+                            >
+                                <Icon name="trash" size={18} />
+                                Удалить образ
                             </button>
                         </div>
                     </div>
@@ -285,6 +306,35 @@ export default function OutfitDetailPage() {
                                 className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover disabled:opacity-50"
                             >
                                 Добавить {selectedToAdd.length > 0 ? `(${selectedToAdd.length})` : ''}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно подтверждения удаления */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Icon name="trash" size={24} className="text-red-600" />
+                        </div>
+                        <h2 className="text-xl font-bold text-center mb-2">Удалить образ?</h2>
+                        <p className="text-gray-500 text-center text-sm mb-6">
+                            Образ "{outfit?.name}" будет удалён безвозвратно.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={handleDeleteOutfit}
+                                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 font-medium shadow-lg shadow-red-200"
+                            >
+                                Удалить
                             </button>
                         </div>
                     </div>

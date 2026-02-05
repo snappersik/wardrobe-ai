@@ -90,10 +90,10 @@ export default function OutfitsFAB({ wardrobeItems = [], onInsufficientItems }) 
                         onClick={handleManualClick}
                         className="flex items-center gap-3 group"
                     >
-                        <span className="bg-white px-4 py-2 rounded-xl shadow-lg text-sm font-semibold text-gray-700">
-                            ✏️ Вручную
+                        <span className="bg-white/95 px-4 py-2 rounded-xl shadow-md border border-gray-100 text-sm font-semibold text-gray-700">
+                            Вручную
                         </span>
-                        <div className="w-12 h-12 bg-white text-gray-700 rounded-full shadow-lg shadow-gray-200 flex items-center justify-center group-hover:bg-gray-50 group-hover:scale-110 transition-all duration-200">
+                        <div className="w-12 h-12 bg-white text-gray-700 rounded-full shadow-md border border-gray-100 flex items-center justify-center group-hover:bg-gray-50 group-hover:scale-110 transition-all duration-200">
                             <Icon name="hanger" size={20} />
                         </div>
                     </button>
@@ -103,10 +103,10 @@ export default function OutfitsFAB({ wardrobeItems = [], onInsufficientItems }) 
                         onClick={handleAIClick}
                         className="flex items-center gap-3 group"
                     >
-                        <span className="bg-white px-4 py-2 rounded-xl shadow-lg text-sm font-semibold text-gray-700">
-                            ✨ AI Генератор
+                        <span className="bg-white/95 px-4 py-2 rounded-xl shadow-md border border-gray-100 text-sm font-semibold text-gray-700">
+                            AI генератор
                         </span>
-                        <div className="w-12 h-12 bg-purple-600 text-white rounded-full shadow-lg shadow-purple-200 flex items-center justify-center group-hover:bg-purple-700 group-hover:scale-110 transition-all duration-200">
+                        <div className="w-12 h-12 bg-white text-purple-600 rounded-full shadow-md border border-purple-100 flex items-center justify-center group-hover:bg-purple-50 group-hover:scale-110 transition-all duration-200">
                             <Icon name="wand-sparkles" size={20} />
                         </div>
                     </button>

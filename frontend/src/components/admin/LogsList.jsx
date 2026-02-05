@@ -8,10 +8,10 @@ const LogsList = ({ logs }) => {
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white/80 rounded-2xl shadow-sm border border-white/70 overflow-hidden">
             <div className="divide-y divide-gray-100">
                 {logs.map(log => (
-                    <div key={log._id || log.id} className="px-6 py-4 hover:bg-gray-50">
+                    <div key={log._id || log.id} className="px-6 py-4 hover:bg-white">
                         <div className="flex items-start gap-4">
                             <span className={`px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-600`}>
                                 {(log.action || log.type || 'info').toUpperCase()}

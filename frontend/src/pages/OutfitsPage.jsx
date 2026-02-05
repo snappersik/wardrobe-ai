@@ -56,7 +56,11 @@ export default function OutfitsPage() {
     const [showChoiceModal, setShowChoiceModal] = useState(false)
 
     // Список возможных поводов для фильтрации
+    // Список возможных поводов для фильтрации
     const occasions = ['Все', 'Повседневный', 'Офис', 'Вечеринка', 'Спорт', 'Свидание']
+
+    // Состояние для удаления
+    const [outfitToDelete, setOutfitToDelete] = useState(null)
 
     const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
 
@@ -142,6 +146,25 @@ export default function OutfitsPage() {
         }
     }
 
+    const handleDeleteClick = (e, outfit) => {
+        e.stopPropagation()
+        setOutfitToDelete(outfit)
+    }
+
+    const confirmDelete = async () => {
+        if (!outfitToDelete) return
+        try {
+            await api.delete(`/outfits/${outfitToDelete.id}`)
+            setOutfits(prev => prev.filter(o => o.id !== outfitToDelete.id))
+            setToast({ message: 'Образ удалён', type: 'success' })
+        } catch (error) {
+            console.error('Failed to delete outfit', error)
+            setToast({ message: 'Не удалось удалить образ', type: 'error' })
+        } finally {
+            setOutfitToDelete(null)
+        }
+    }
+
     // ==========================================================================
     // ФИЛЬТРАЦИЯ
     // ==========================================================================
@@ -210,11 +233,10 @@ export default function OutfitsPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 md:pb-0">
                         {filteredOutfits.map(outfit => (
-                            <button
+                            <div
                                 key={outfit.id}
-                                type="button"
                                 onClick={() => navigate(`/outfits/${outfit.id}`)}
-                                className="text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 card-hover"
+                                className="text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 card-hover cursor-pointer"
                             >
                                 <div className="relative h-48 bg-gray-50 p-3">
                                     <div className="grid grid-cols-2 gap-2 h-full">
@@ -242,15 +264,24 @@ export default function OutfitsPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="absolute top-3 right-3 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium">
-                                        {outfit.occasion}
+                                    <div className="absolute top-3 right-3 flex gap-2">
+                                        <div className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium">
+                                            {outfit.occasion}
+                                        </div>
+                                        <button
+                                            onClick={(e) => handleDeleteClick(e, outfit)}
+                                            className="p-1 px-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-400 hover:text-red-500 hover:bg-white transition-colors"
+                                            title="Удалить образ"
+                                        >
+                                            <Icon name="trash" size={14} />
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="p-4">
                                     <h3 className="font-bold text-gray-900 mb-1">{outfit.name}</h3>
                                     <p className="text-sm text-gray-500">{outfit.itemsCount} вещей</p>
                                 </div>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}
@@ -302,6 +333,35 @@ export default function OutfitsPage() {
                         >
                             Отмена
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно подтверждения удаления */}
+            {outfitToDelete && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Icon name="trash" size={24} className="text-red-600" />
+                        </div>
+                        <h2 className="text-xl font-bold text-center mb-2">Удалить образ?</h2>
+                        <p className="text-gray-500 text-center text-sm mb-6">
+                            Образ "{outfitToDelete.name}" будет удалён безвозвратно.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setOutfitToDelete(null)}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 font-medium shadow-lg shadow-red-200"
+                            >
+                                Удалить
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

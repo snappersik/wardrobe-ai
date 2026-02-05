@@ -185,7 +185,7 @@ export default function LoginForm({ showToast }) {
                             name="remember"
                             checked={formData.remember}
                             onChange={handleChange}
-                            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary accent-primary"
                         />
                         <span className="text-sm text-gray-600">Запомнить меня</span>
                     </label>

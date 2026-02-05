@@ -2,9 +2,9 @@ import Icon from '../common/Icon';
 
 const UsersTable = ({ users, onRoleChange }) => {
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white/80 rounded-2xl shadow-sm border border-white/70 overflow-hidden">
             <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-white/70 border-b border-white/70">
                     <tr>
                         <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Пользователь</th>
                         <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Роль</th>
@@ -15,7 +15,7 @@ const UsersTable = ({ users, onRoleChange }) => {
                 </thead>
                 <tbody>
                     {users.map(u => (
-                        <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <tr key={u.id} className="border-b border-white/70 hover:bg-white">
                             <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 font-bold">

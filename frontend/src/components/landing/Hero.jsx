@@ -36,10 +36,10 @@ export default function Hero() {
                                     <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=64&h=64" alt="User" />
                                 </div>
                                 <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-300 overflow-hidden">
-                                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=64&h=64" alt="User" />
+                                    <img src="https://otvet.imgsmail.ru/download/273877053_7e9bd138d17c261ac3bbc5b91369c349.jpg" alt="User" />
                                 </div>
                                 <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-400 overflow-hidden">
-                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=64&h=64" alt="User" />
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShSC4f43BeBC0nUlBN5W2WyWTws1kd2dP-JQ&s" alt="User" />
                                 </div>
                             </div>
                             <p>Уже используют более 10,000 модниц</p>

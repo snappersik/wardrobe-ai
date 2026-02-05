@@ -128,7 +128,7 @@ export default function OutfitCreatePage() {
 
         setSaving(true)
         try {
-            await api.post('/outfits', {
+            await api.post('/outfits/create', {
                 name: outfitName || `Образ ${new Date().toLocaleDateString()}`,
                 target_season: occasion,
                 item_ids: selectedItems.map(i => i.id)

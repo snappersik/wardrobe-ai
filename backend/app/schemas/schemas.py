@@ -14,7 +14,7 @@ from pydantic import BaseModel, EmailStr, validator
 from typing import Optional, List
 
 # Работа с датами
-from datetime import datetime
+from datetime import datetime, date
 
 
 # =============================================================================
@@ -287,3 +287,26 @@ class OutfitDetailResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# =============================================================================
+# 📅 КАЛЕНДАРЬ ОБРАЗОВ (Calendar Schemas)
+# =============================================================================
+class CalendarDayUpdate(BaseModel):
+    """
+    Схема для обновления образов на дату.
+    
+    Используется в: PUT /api/calendar/{date}
+    
+    Атрибуты:
+        outfit_ids: Список ID образов на выбранный день
+    """
+    outfit_ids: List[int] = []
+
+
+class CalendarDayResponse(BaseModel):
+    """
+    Схема ответа для одного дня календаря.
+    """
+    date: date
+    outfit_ids: List[int]

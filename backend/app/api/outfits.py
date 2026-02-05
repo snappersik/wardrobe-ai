@@ -537,6 +537,13 @@ async def delete_outfit(
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
     
+    # Удаляем связи с календарём
+    await db.execute(
+        delete(models.CalendarOutfit).filter(
+            models.CalendarOutfit.outfit_id == outfit_id
+        )
+    )
+
     # Удаляем все связи с вещами
     await db.execute(
         delete(models.OutfitItem).filter(

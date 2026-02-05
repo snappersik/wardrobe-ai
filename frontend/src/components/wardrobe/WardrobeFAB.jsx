@@ -60,10 +60,10 @@ export default function WardrobeFAB({ onCameraClick, onGalleryClick }) {
                         onClick={handleCameraClick}
                         className="flex items-center gap-3 group"
                     >
-                        <span className="bg-white px-4 py-2 rounded-xl shadow-lg text-sm font-semibold text-gray-700">
-                            📷 Камера
+                        <span className="bg-white/95 px-4 py-2 rounded-xl shadow-md border border-gray-100 text-sm font-semibold text-gray-700">
+                            Камера
                         </span>
-                        <div className="w-12 h-12 bg-white text-gray-700 rounded-full shadow-lg shadow-gray-200 flex items-center justify-center group-hover:bg-gray-50 group-hover:scale-110 transition-all duration-200">
+                        <div className="w-12 h-12 bg-white text-gray-700 rounded-full shadow-md border border-gray-100 flex items-center justify-center group-hover:bg-gray-50 group-hover:scale-110 transition-all duration-200">
                             <Icon name="camera" size={20} />
                         </div>
                     </button>
@@ -75,10 +75,10 @@ export default function WardrobeFAB({ onCameraClick, onGalleryClick }) {
                         onClick={handleGalleryClick}
                         className="flex items-center gap-3 group"
                     >
-                        <span className="bg-white px-4 py-2 rounded-xl shadow-lg text-sm font-semibold text-gray-700">
-                            🖼️ Галерея
+                        <span className="bg-white/95 px-4 py-2 rounded-xl shadow-md border border-gray-100 text-sm font-semibold text-gray-700">
+                            Галерея
                         </span>
-                        <div className="w-12 h-12 bg-primary text-white rounded-full shadow-lg shadow-pink-200 flex items-center justify-center group-hover:bg-primary-hover group-hover:scale-110 transition-all duration-200">
+                        <div className="w-12 h-12 bg-white text-gray-700 rounded-full shadow-md border border-gray-100 flex items-center justify-center group-hover:bg-gray-50 group-hover:scale-110 transition-all duration-200">
                             <Icon name="image" size={20} />
                         </div>
                     </button>

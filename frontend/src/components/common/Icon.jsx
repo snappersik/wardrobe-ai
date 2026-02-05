@@ -55,7 +55,29 @@ import {
     MapPin,           // Метка на карте
     ChevronRight,     // Стрелка вправо
     ChevronLeft,      // Стрелка влево
-    CloudSun          // Облако с солнцем
+    CloudSun,         // Облако с солнцем
+    LayoutDashboard,  // Dashboard
+    PenTool,          // Editor
+    Users,            // Users
+    BarChart3,        // Analytics
+    FileText,         // Logs
+    Settings,         // Settings
+    LogOut,           // Logout
+    Bell,             // Notifications
+    Menu,             // Menu
+    ChevronDown,      // Chevron down
+    TrendingUp,       // Trend up
+    TrendingDown,     // Trend down
+    MoreVertical,     // More
+    Layout,           // Layout
+    Grid,             // Grid
+    List,             // List
+    MessageSquare,    // Messages
+    Zap,              // Zap
+    Type,             // Type
+    Minus,            // Minus
+    CheckCircle,      // Check circle
+    Edit2             // Редактировать 2
 } from 'lucide-react';
 
 // Кастомная иконка "Вешалка" (для логотипа)
@@ -134,7 +156,29 @@ const icons = {
     'chevron-right': ChevronRight,
     'chevron-left': ChevronLeft,
     'cloud-sun': CloudSun,
-    'hanger': HangerIcon
+    'layout-dashboard': LayoutDashboard,
+    'pen-tool': PenTool,
+    'users': Users,
+    'chart-bar': BarChart3,
+    'file-text': FileText,
+    'settings': Settings,
+    'log-out': LogOut,
+    'bell': Bell,
+    'menu': Menu,
+    'chevron-down': ChevronDown,
+    'trending-up': TrendingUp,
+    'trending-down': TrendingDown,
+    'more-vertical': MoreVertical,
+    'layout': Layout,
+    'grid': Grid,
+    'list': List,
+    'message-square': MessageSquare,
+    'zap': Zap,
+    'type': Type,
+    'minus': Minus,
+    'check-circle': CheckCircle,
+    'hanger': HangerIcon,
+    'edit-2': Edit2
 };
 
 // =============================================================================

@@ -58,9 +58,9 @@ export default function HowItWorks() {
                                     <Icon name="cloud-sun" size={16} className="text-yellow-500" />
                                 </div>
                                 <div className="flex gap-2">
-                                    <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=100&q=80)' }}></div>
-                                    <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=100&q=80)' }}></div>
-                                    <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1549611016-8a70c8630ea5?auto=format&fit=crop&w=100&q=80)' }}></div>
+                                    <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://ae04.alicdn.com/kf/Sd01fd16c54a142c69026651bf7bc6429C.jpg_640x640.jpg)' }}></div>
+                                    <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt2Lp4YH2Myc3SPmcIBYYFKyZ1PMEIC7S1lA&s)' }}></div>
+                                    <div className="w-16 h-20 bg-gray-100 rounded-lg bg-cover bg-center" style={{ backgroundImage: 'url(https://imageproxy.fh.by/I7wUeZKwpn_V1O4mmqzsHqe1-XZ9JxVOzZLvN9NUt7M/w:894/h:1342/rt:fit/q:95/czM6Ly9maC1wcm9kdWN0aW9uLXJmMy8xNDUxMjA5LzhjMmY3ZjhlLWQ3MzEtMTFmMC1iNWFkLTAwNTA1NjAxMDI4OA.jpg)' }}></div>
                                 </div>
                             </div>
                         </div>
