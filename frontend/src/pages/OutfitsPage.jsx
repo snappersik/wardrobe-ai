@@ -64,6 +64,34 @@ export default function OutfitsPage() {
 
     const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
 
+    const occasionMap = {
+        casual: 'Повседневный',
+        work: 'Офис',
+        party: 'Вечеринка',
+        date: 'Свидание',
+        sport: 'Спорт',
+        повседневный: 'Повседневный',
+        офис: 'Офис',
+        вечеринка: 'Вечеринка',
+        свидание: 'Свидание',
+        спорт: 'Спорт'
+    }
+
+    const normalizeOccasion = (value, name) => {
+        if (value) {
+            const mapped = occasionMap[String(value).toLowerCase()]
+            return mapped || value
+        }
+        if (name) {
+            const lower = String(name).toLowerCase()
+            if (lower.startsWith('ai:')) {
+                const raw = lower.replace('ai:', '').trim()
+                return occasionMap[raw] || raw
+            }
+        }
+        return 'Повседневный'
+    }
+
     // ==========================================================================
     // ЗАГРУЗКА ДАННЫХ
     // ==========================================================================
@@ -88,7 +116,7 @@ export default function OutfitsPage() {
             const mappedOutfits = detailed.map(outfit => ({
                 id: outfit.id,
                 name: outfit.name || 'Без названия',
-                occasion: outfit.target_season || 'Повседневный',
+                occasion: normalizeOccasion(outfit.target_season, outfit.name),
                 itemsCount: Array.isArray(outfit.items) ? outfit.items.length : 0,
                 previewItems: Array.isArray(outfit.items) ? outfit.items.slice(0, 4) : [],
                 date: new Date(outfit.created_at).toLocaleDateString()

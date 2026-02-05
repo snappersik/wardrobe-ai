@@ -67,17 +67,9 @@ const GeneratorPage = () => {
                 switch (e.key) {
                     case 'ArrowLeft':
                         e.preventDefault()
-                        handleFeedback('dislike')
+                        handleFeedback('skip')
                         break
                     case 'ArrowRight':
-                        e.preventDefault()
-                        handleFeedback('like')
-                        break
-                    case 'ArrowUp':
-                        e.preventDefault()
-                        handleFeedback('favorite')
-                        break
-                    case 'ArrowDown':
                         e.preventDefault()
                         handleFeedback('save')
                         break
@@ -92,6 +84,9 @@ const GeneratorPage = () => {
             }
 
             if (stage === 'results' && outfits.length > 0) {
+                // ... (code continues)
+                // ...
+
                 switch (e.key) {
                     case 'ArrowLeft':
                         e.preventDefault()
@@ -234,7 +229,7 @@ const GeneratorPage = () => {
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <UniversalHeader activePage="generator" user={user} />
 
-            <main className="flex-grow container mx-auto max-w-2xl px-4 py-6">
+            <main className="flex-grow container mx-auto max-w-2xl lg:max-w-5xl px-4 py-6">
                 {/* STAGE 1: CONDITIONS */}
                 {stage === 'conditions' && (
                     <div className="space-y-8">
@@ -353,20 +348,22 @@ const GeneratorPage = () => {
 
                         {/* Outfit Card with Navigation Arrows */}
                         <div className="relative">
-                            {/* Left Arrow - Click to Dislike */}
+                            {/* Left Arrow - Click to Skip */}
                             <button
-                                onClick={() => handleFeedback('dislike')}
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-red-500 hover:bg-red-50 transition-all hover:scale-110 hidden md:flex"
+                                onClick={() => handleFeedback('skip')}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all hover:scale-110 hidden md:flex"
+                                title="Пропустить"
                             >
-                                <Icon name="chevron-left" size={24} />
+                                <Icon name="x" size={24} />
                             </button>
 
-                            {/* Right Arrow - Click to Like */}
+                            {/* Right Arrow - Click to Save */}
                             <button
-                                onClick={() => handleFeedback('like')}
-                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-green-500 hover:bg-green-50 transition-all hover:scale-110 hidden md:flex"
+                                onClick={() => handleFeedback('save')}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-primary hover:bg-primary/5 transition-all hover:scale-110 hidden md:flex"
+                                title="Сохранить"
                             >
-                                <Icon name="chevron-right" size={24} />
+                                <Icon name="bookmark" size={24} />
                             </button>
 
                             <div className={`bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 transform ${swipeDirection === 'left' ? '-translate-x-full rotate-[-15deg] opacity-0' :
@@ -374,9 +371,9 @@ const GeneratorPage = () => {
                                 }`}>
                                 {/* Items Grid */}
                                 <div className="p-6">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                                         {outfits[currentIndex]?.items.map((item, idx) => (
-                                            <div key={idx} className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+                                            <div key={idx} className="aspect-square md:aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
                                                 <img
                                                     src={`${mediaBaseUrl}/${item.image_path}`}
                                                     alt={item.filename}
@@ -419,46 +416,36 @@ const GeneratorPage = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center justify-center gap-4 py-4">
-                            {/* Dislike */}
+                        <div className="flex items-center justify-center gap-6 py-6">
+                            {/* Skip (Left) */}
                             <button
-                                onClick={() => handleFeedback('dislike')}
-                                className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-red-500 hover:bg-red-50 transition-all hover:scale-110"
+                                onClick={() => handleFeedback('skip')}
+                                className="w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all hover:scale-110 border border-gray-100"
+                                title="Пропустить (Влево)"
                             >
-                                <Icon name="thumbs-down" size={24} />
+                                <Icon name="x" size={32} />
                             </button>
 
-                            {/* Like (for AI training) */}
-                            <button
-                                onClick={() => handleFeedback('like')}
-                                className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-green-500 hover:bg-green-50 transition-all hover:scale-110"
-                            >
-                                <Icon name="thumbs-up" size={24} />
-                            </button>
-
-                            {/* Favorite */}
-                            <button
-                                onClick={() => handleFeedback('favorite')}
-                                className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-red-500 shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all hover:scale-110"
-                            >
-                                <Icon name="heart" size={28} />
-                            </button>
-
-                            {/* Save */}
+                            {/* Save (Right) */}
                             <button
                                 onClick={() => handleFeedback('save')}
-                                className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-500 hover:bg-blue-50 transition-all hover:scale-110"
+                                className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-purple-600 shadow-xl flex items-center justify-center text-white transition-all hover:scale-110 hover:shadow-2xl hover:-translate-y-1"
+                                title="Сохранить (Вправо)"
                             >
-                                <Icon name="bookmark" size={24} />
+                                <Icon name="bookmark" size={32} />
                             </button>
                         </div>
 
                         {/* Button Labels with Keyboard Hints */}
-                        <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-                            <span className="w-14 text-center">← Не то</span>
-                            <span className="w-14 text-center">→ Нравится</span>
-                            <span className="w-16 text-center">↑ Избранное</span>
-                            <span className="w-14 text-center">↓ Сохранить</span>
+                        <div className="flex items-center justify-center gap-12 text-xs text-gray-400 font-medium">
+                            <span className="flex items-center gap-1">
+                                <kbd className="px-2 py-0.5 bg-gray-100 rounded border border-gray-200 font-sans">←</kbd>
+                                Пропустить
+                            </span>
+                            <span className="flex items-center gap-1">
+                                Сохранить
+                                <kbd className="px-2 py-0.5 bg-gray-100 rounded border border-gray-200 font-sans">→</kbd>
+                            </span>
                         </div>
                     </div>
                 )}
@@ -528,11 +515,11 @@ const GeneratorPage = () => {
                                             {outfits.map((outfit, idx) => (
                                                 <div key={idx} className="min-w-full px-1">
                                                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                                                        <div className="grid grid-cols-2 gap-3">
+                                                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                                                             {outfit.items?.slice(0, 4).map((item, itemIdx) => {
                                                                 const showMoreOverlay = itemIdx === 3 && outfit.items?.length > 4
                                                                 return (
-                                                                    <div key={itemIdx} className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden">
+                                                                    <div key={itemIdx} className="relative aspect-square md:aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
                                                                         <img
                                                                             src={`${mediaBaseUrl}/${item.image_path}`}
                                                                             alt={item.filename}

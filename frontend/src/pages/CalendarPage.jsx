@@ -24,6 +24,50 @@ export default function CalendarPage() {
         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
     const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
+    const occasionIconMap = {
+        'повседневный': 'sun',
+        'casual': 'sun',
+        'офис': 'briefcase',
+        'work': 'briefcase',
+        'вечеринка': 'music',
+        'party': 'music',
+        'свидание': 'heart',
+        'date': 'heart',
+        'спорт': 'activity',
+        'sport': 'activity'
+    }
+
+    const normalizeOccasion = (value, name) => {
+        if (value) {
+            const key = String(value).toLowerCase()
+            if (occasionIconMap[key]) {
+                return key === 'casual' ? 'Повседневный' :
+                    key === 'work' ? 'Офис' :
+                        key === 'party' ? 'Вечеринка' :
+                            key === 'date' ? 'Свидание' :
+                                key === 'sport' ? 'Спорт' : value
+            }
+            return value
+        }
+        if (name) {
+            const lower = String(name).toLowerCase()
+            if (lower.startsWith('ai:')) {
+                const raw = lower.replace('ai:', '').trim()
+                return raw === 'casual' ? 'Повседневный' :
+                    raw === 'work' ? 'Офис' :
+                        raw === 'party' ? 'Вечеринка' :
+                            raw === 'date' ? 'Свидание' :
+                                raw === 'sport' ? 'Спорт' : raw
+            }
+        }
+        return 'Повседневный'
+    }
+
+    const getOccasionIcon = (occasion) => {
+        const key = String(occasion || '').toLowerCase()
+        return occasionIconMap[key] || 'sparkles'
+    }
+
     // Получить дни месяца для отображения в сетке
     const getDaysInMonth = (date) => {
         const year = date.getFullYear()
@@ -96,7 +140,7 @@ export default function CalendarPage() {
             const mapped = detailed.map(outfit => ({
                 id: outfit.id,
                 name: outfit.name || 'Без названия',
-                occasion: outfit.target_season || 'Повседневный',
+                occasion: normalizeOccasion(outfit.target_season, outfit.name),
                 itemsCount: Array.isArray(outfit.items) ? outfit.items.length : 0,
                 previewItems: Array.isArray(outfit.items) ? outfit.items.slice(0, 4) : []
             }))
@@ -241,18 +285,13 @@ export default function CalendarPage() {
                                                 <div className="flex -space-x-1">
                                                     {dayOutfits.slice(0, 3).map((id, i) => {
                                                         const outfit = outfitById[id]
-                                                        const preview = outfit?.previewItems?.[0]
                                                         return (
-                                                            <div key={`${id}-${i}`} className="w-5 h-5 rounded-full bg-white border border-white overflow-hidden shadow">
-                                                                {preview ? (
-                                                                    <img
-                                                                        src={`${mediaBaseUrl}/${preview.image_path}`}
-                                                                        alt={outfit?.name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-full h-full bg-gray-200" />
-                                                                )}
+                                                            <div
+                                                                key={`${id}-${i}`}
+                                                                className="w-5 h-5 rounded-full bg-white/90 border border-white shadow flex items-center justify-center"
+                                                                title={outfit?.occasion || 'Образ'}
+                                                            >
+                                                                <Icon name={getOccasionIcon(outfit?.occasion)} size={12} className="text-pink-500" />
                                                             </div>
                                                         )
                                                     })}
@@ -322,7 +361,10 @@ export default function CalendarPage() {
                                                     </button>
                                                 </div>
                                                 <div className="mt-2 text-xs text-gray-500">
-                                                    {outfit.occasion}
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <Icon name={getOccasionIcon(outfit.occasion)} size={12} className="text-pink-500" />
+                                                        {outfit.occasion}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>

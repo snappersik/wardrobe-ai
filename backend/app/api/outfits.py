@@ -563,7 +563,7 @@ async def delete_outfit(
 # =============================================================================
 import random
 import itertools
-from app.ml.outfit_scorer import score_outfit, filter_items_by_weather
+from app.ml.outfit_scorer import score_outfit, filter_items_by_weather, parse_json_field
 
 @router.post("/generate")
 async def generate_outfits(
@@ -623,49 +623,161 @@ async def generate_outfits(
     # Фильтруем вещи по погоде/сезону (если нет подходящих — возвращает все)
     filtered_items = filter_items_by_weather(items_dict, weather_category)
 
-    # Группируем по типам
-    tops = [i for i in filtered_items if i["category"] in ["t-shirt", "shirt", "pullover", "coat"]]
-    bottoms = [i for i in filtered_items if i["category"] in ["trouser", "dress"]]
-    shoes = [i for i in filtered_items if i["category"] in ["sneaker", "sandal", "ankle-boot"]]
-    accessories = [i for i in filtered_items if i["category"] == "bag"]
-    
-    # Если нет разделения по категориям, используем все вещи
+    # ??????/?????? ??????: ?? ?????????? ???????? ? ??????
+    if weather_category in ["warm", "hot"]:
+        restricted_categories = {"pullover", "coat"}
+        warm_items = [i for i in filtered_items if i["category"] not in restricted_categories]
+        if warm_items:
+            filtered_items = warm_items
+        else:
+            filtered_items = [i for i in items_dict if i["category"] not in restricted_categories]
+            if not filtered_items:
+                raise HTTPException(
+                    status_code=400,
+                    detail="??? ?????????? ????? ??? ??????/?????? ??????"
+                )
+
+
+
+    # Group items by type
+    top_categories = {"t-shirt", "shirt", "pullover"}
+    outer_categories = {"coat"}
+    bottom_categories = {"trouser"}
+    full_categories = {"dress"}
+    shoe_categories = {"sneaker", "sandal", "ankle-boot"}
+    accessory_categories = {"bag"}
+
+    tops = [i for i in filtered_items if i["category"] in top_categories]
+    outerwear = [i for i in filtered_items if i["category"] in outer_categories]
+    bottoms = [i for i in filtered_items if i["category"] in bottom_categories]
+    fulls = [i for i in filtered_items if i["category"] in full_categories]
+    shoes = [i for i in filtered_items if i["category"] in shoe_categories]
+    accessories = [i for i in filtered_items if i["category"] in accessory_categories]
+
+    # Fallbacks if wardrobe is sparse
+    non_layer_categories = shoe_categories | accessory_categories | full_categories
     if not tops:
-        tops = filtered_items
+        fallback_tops = [i for i in filtered_items if i["category"] not in (non_layer_categories | bottom_categories | outer_categories)]
+        tops = fallback_tops or [i for i in filtered_items if i["category"] not in (non_layer_categories | outer_categories)]
     if not bottoms:
-        bottoms = filtered_items
-    
-    # Генерируем все возможные комбинации
-    all_combinations = []
-    
-    for top in tops:
-        for bottom in bottoms:
-            # Пропускаем если верх = низ = платье
-            if top["id"] == bottom["id"]:
-                continue
-            
-            # Базовая комбинация: верх + низ
-            base_outfit = [top, bottom]
-            
-            # Если есть обувь - добавляем варианты
-            if shoes:
-                for shoe in shoes:
-                    outfit = base_outfit + [shoe]
-                    all_combinations.append(outfit)
-                    
-                    # Добавляем вариант с аксессуаром
-                    if accessories:
-                        for acc in accessories:
-                            outfit_with_acc = outfit + [acc]
-                            all_combinations.append(outfit_with_acc)
-            else:
-                all_combinations.append(base_outfit)
+        fallback_bottoms = [i for i in filtered_items if i["category"] not in (non_layer_categories | top_categories | outer_categories)]
+        bottoms = fallback_bottoms or [i for i in filtered_items if i["category"] not in non_layer_categories]
+
+    def is_winter_item(item):
+        seasons = [s.lower() for s in parse_json_field(item.get("season", []))]
+        return (
+            "winter" in seasons
+            or "????" in seasons
+            or "all" in seasons
+            or "???????????" in seasons
+        )
+
+
+    def is_transitional_item(item):
+        seasons = [s.lower() for s in parse_json_field(item.get("season", []))]
+        if not seasons:
+            return False
+        for value in seasons:
+            if (
+                "spring" in value
+                or "autumn" in value
+                or "fall" in value
+                or "?????" in value
+                or "?????" in value
+                or "all" in value
+                or "????????" in value
+            ):
+                return True
+        return False
+
+    winter_coats = [c for c in outerwear if is_winter_item(c)]
+    coat_candidates = winter_coats or outerwear
+
+    transitional_coats = [c for c in outerwear if is_transitional_item(c)]
+    coat_candidates_cool = transitional_coats or outerwear
+
+    def add_with_shoes_and_accessories(base_items, combinations):
+        if shoes:
+            for shoe in shoes:
+                outfit = base_items + [shoe]
                 if accessories:
                     for acc in accessories:
-                        outfit_with_acc = base_outfit + [acc]
-                        all_combinations.append(outfit_with_acc)
-    
-    # Если комбинаций нет - создаём хотя бы одну
+                        combinations.append(outfit + [acc])
+                else:
+                    combinations.append(outfit)
+        else:
+            combinations.append(base_items)
+            if accessories:
+                for acc in accessories:
+                    combinations.append(base_items + [acc])
+
+    # Build combinations
+    all_combinations = []
+    weather_is_cold = weather_category == "cold"
+
+    # Cold weather: coat required when available, plus top + bottom.
+    if weather_is_cold:
+        coat_required = bool(coat_candidates)
+        coat_variants = coat_candidates if coat_required else [None]
+
+        for bottom in bottoms:
+            for top in tops:
+                if top["id"] == bottom["id"]:
+                    continue
+                for coat in coat_variants:
+                    base_outfit = []
+                    if coat:
+                        base_outfit.append(coat)
+                    base_outfit.extend([top, bottom])
+                    add_with_shoes_and_accessories(base_outfit, all_combinations)
+
+        shirts = [i for i in tops if i["category"] == "shirt"]
+        pullovers = [i for i in tops if i["category"] == "pullover"]
+        if shirts and pullovers:
+            for bottom in bottoms:
+                for shirt in shirts:
+                    for pullover in pullovers:
+                        if len({shirt["id"], pullover["id"], bottom["id"]}) < 3:
+                            continue
+                        for coat in coat_variants:
+                            base_outfit = []
+                            if coat:
+                                base_outfit.append(coat)
+                            base_outfit.extend([shirt, pullover, bottom])
+                            add_with_shoes_and_accessories(base_outfit, all_combinations)
+
+    # Non-cold weather: top + bottom, coat optional.
+    if not weather_is_cold:
+        coat_variants = coat_candidates_cool if weather_category == "cool" else outerwear
+        for top in tops:
+            for bottom in bottoms:
+                if top["id"] == bottom["id"]:
+                    continue
+                base_outfit = [top, bottom]
+                add_with_shoes_and_accessories(base_outfit, all_combinations)
+                for coat in coat_variants:
+                    base_outfit = [coat, top, bottom]
+                    add_with_shoes_and_accessories(base_outfit, all_combinations)
+
+    # Dresses: only with shirt/coat (or alone). Skip in cold unless nothing else.
+    allow_dress_outfits = not weather_is_cold
+    if weather_is_cold and not all_combinations:
+        allow_dress_outfits = True
+
+    if allow_dress_outfits:
+        shirts = [i for i in tops if i["category"] == "shirt"]
+        for dress in fulls:
+            add_with_shoes_and_accessories([dress], all_combinations)
+            if weather_category not in ["warm", "hot"]:
+                for shirt in shirts:
+                    add_with_shoes_and_accessories([dress, shirt], all_combinations)
+            coat_variants = coat_candidates_cool if weather_category == "cool" else outerwear
+            for coat in coat_variants:
+                add_with_shoes_and_accessories([dress, coat], all_combinations)
+            if weather_category not in ["warm", "hot"]:
+                for shirt in shirts:
+                    for coat in coat_variants:
+                        add_with_shoes_and_accessories([dress, shirt, coat], all_combinations)
     if not all_combinations:
         all_combinations.append(items_dict[:min(3, len(items_dict))])
     
@@ -682,24 +794,59 @@ async def generate_outfits(
     scored_outfits.sort(key=lambda x: x["scores"]["total"], reverse=True)
     
     # Фильтруем только хорошие образы (score > 0.5)
+    # Filter by score
     good_outfits = [o for o in scored_outfits if o["scores"]["total"] > 0.5]
-    
-    # Если хороших нет - берём лучшие из того что есть
+
+    # If there are no good outfits, fall back to the best ones
     if not good_outfits:
-        good_outfits = scored_outfits[:count]
-    
-    # Убираем дубликаты (одинаковые наборы ID)
+        good_outfits = scored_outfits[:max(count, 1)]
+
+    # Pick a wider pool for diversity when needed
+    def unique_item_count(outfits):
+        return len({item["id"] for outfit in outfits for item in outfit["items"]})
+
+    candidate_outfits = good_outfits
+    if unique_item_count(candidate_outfits) < unique_item_count(scored_outfits):
+        candidate_outfits = scored_outfits
+    elif len(candidate_outfits) < count * 2:
+        candidate_outfits = scored_outfits
+
+    # Remove duplicates (same set of item IDs)
     seen_combos = set()
     unique_outfits = []
-    for outfit in good_outfits:
+    for outfit in candidate_outfits:
         combo_ids = tuple(sorted(item["id"] for item in outfit["items"]))
         if combo_ids not in seen_combos:
             seen_combos.add(combo_ids)
             unique_outfits.append(outfit)
-    
-    # Ограничиваем количество
-    count = min(count, 10)  # Максимум 10
-    final_outfits = unique_outfits[:count]
+
+    def select_diverse(outfits, target_count):
+        selected = []
+        usage = {}
+        remaining = outfits[:]
+        random.shuffle(remaining)
+
+        while remaining and len(selected) < target_count:
+            best = None
+            best_score = None
+            for outfit in remaining:
+                item_ids = [item["id"] for item in outfit["items"]]
+                reuse = sum(usage.get(item_id, 0) for item_id in item_ids)
+                novelty = sum(1 for item_id in item_ids if usage.get(item_id, 0) == 0)
+                adjusted = outfit["scores"]["total"] + (novelty * 0.02) - (reuse * 0.03)
+                if best_score is None or adjusted > best_score:
+                    best = outfit
+                    best_score = adjusted
+            selected.append(best)
+            for item_id in [item["id"] for item in best["items"]]:
+                usage[item_id] = usage.get(item_id, 0) + 1
+            remaining.remove(best)
+
+        return selected
+
+    # Limit count and select diverse outfits
+    count = min(count, 10)
+    final_outfits = select_diverse(unique_outfits, count)
     
     # Формируем ответ
     generated_outfits = []
@@ -767,6 +914,19 @@ async def submit_feedback(
     
     # Для favorite/save - создаём образ в БД
     if feedback.action in ["favorite", "save"]:
+        occasion_map = {
+            "casual": "Повседневный",
+            "work": "Офис",
+            "party": "Вечеринка",
+            "date": "Свидание",
+            "sport": "Спорт",
+            "повседневный": "Повседневный",
+            "офис": "Офис",
+            "вечеринка": "Вечеринка",
+            "свидание": "Свидание",
+            "спорт": "Спорт"
+        }
+        occasion_value = occasion_map.get(str(feedback.occasion).lower(), feedback.occasion)
         # Проверяем что все вещи принадлежат пользователю
         result = await db.execute(
             select(models.ClothingItem).filter(
@@ -782,8 +942,8 @@ async def submit_feedback(
         # Создаём образ
         new_outfit = models.Outfit(
             owner_id=current_user.id,
-            name=f"AI: {feedback.occasion}",
-            target_season=None,
+            name=f"AI: {occasion_value}",
+            target_season=occasion_value,
             target_weather=feedback.weather,
             created_by_ai=True,
             is_favorite=(feedback.action == "favorite")

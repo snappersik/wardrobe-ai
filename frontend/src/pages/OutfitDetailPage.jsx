@@ -30,6 +30,34 @@ export default function OutfitDetailPage() {
     const occasions = ['Повседневный', 'Офис', 'Вечеринка', 'Спорт', 'Свидание']
     const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
 
+    const occasionMap = {
+        casual: 'Повседневный',
+        work: 'Офис',
+        party: 'Вечеринка',
+        date: 'Свидание',
+        sport: 'Спорт',
+        повседневный: 'Повседневный',
+        офис: 'Офис',
+        вечеринка: 'Вечеринка',
+        свидание: 'Свидание',
+        спорт: 'Спорт'
+    }
+
+    const normalizeOccasion = (value, name) => {
+        if (value) {
+            const mapped = occasionMap[String(value).toLowerCase()]
+            return mapped || value
+        }
+        if (name) {
+            const lower = String(name).toLowerCase()
+            if (lower.startsWith('ai:')) {
+                const raw = lower.replace('ai:', '').trim()
+                return occasionMap[raw] || raw
+            }
+        }
+        return 'Повседневный'
+    }
+
     const showToast = (message, type = 'success') => {
         setToast({ message, type })
         setTimeout(() => setToast(null), 2500)
@@ -54,7 +82,7 @@ export default function OutfitDetailPage() {
             setOutfit(data)
             setFormData({
                 name: data.name || '',
-                occasion: data.target_season || 'Повседневный'
+                occasion: normalizeOccasion(data.target_season, data.name)
             })
         } catch (error) {
             console.error('Failed to fetch outfit', error)
