@@ -559,7 +559,7 @@ async def delete_outfit(
 
 
 # =============================================================================
-# ЭНДПОИНТ: AI ГЕНЕРАЦИЯ ОБРАЗОВ (УМНАЯ ВЕРСИЯ)
+# ЭНДПОИНТ: AI ГЕНЕРАЦИЯ ОБРАЗОВ (ГЕНЕРАТОР)
 # =============================================================================
 import random
 import itertools
@@ -623,7 +623,6 @@ async def generate_outfits(
     # Фильтруем вещи по погоде/сезону (если нет подходящих — возвращает все)
     filtered_items = filter_items_by_weather(items_dict, weather_category)
 
-    # ??????/?????? ??????: ?? ?????????? ???????? ? ??????
     if weather_category in ["warm", "hot"]:
         restricted_categories = {"pullover", "coat"}
         warm_items = [i for i in filtered_items if i["category"] not in restricted_categories]
@@ -634,7 +633,7 @@ async def generate_outfits(
             if not filtered_items:
                 raise HTTPException(
                     status_code=400,
-                    detail="??? ?????????? ????? ??? ??????/?????? ??????"
+                    detail="not enoght items"
                 )
 
 
@@ -667,9 +666,9 @@ async def generate_outfits(
         seasons = [s.lower() for s in parse_json_field(item.get("season", []))]
         return (
             "winter" in seasons
-            or "????" in seasons
+            or "зима" in seasons
             or "all" in seasons
-            or "???????????" in seasons
+            or "всесезонный" in seasons
         )
 
 
@@ -682,10 +681,10 @@ async def generate_outfits(
                 "spring" in value
                 or "autumn" in value
                 or "fall" in value
-                or "?????" in value
-                or "?????" in value
+                or "весна" in value
+                or "осень" in value
                 or "all" in value
-                or "????????" in value
+                or "демисезон" in value
             ):
                 return True
         return False

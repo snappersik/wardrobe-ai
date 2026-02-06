@@ -41,6 +41,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage' // Дашбо�
 import AdminUsersPage from './pages/admin/AdminUsersPage'         // Управление пользователями
 import AdminLogsPage from './pages/admin/AdminLogsPage'           // Просмотр логов аудита
 import AdminEditorPage from './pages/admin/AdminEditorPage'       // Редактор контента
+import AdminSettingsPage from './pages/admin/AdminSettingsPage'   // Настройки администратора
 
 // Страницы ошибок (HTTP status codes)
 import NotFoundPage from './pages/errors/NotFoundPage'             // 404 - Страница не найдена
@@ -83,6 +84,7 @@ export default function App() {
                 <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
                 <Route path="/admin/logs" element={<AdminRoute><AdminLogsPage /></AdminRoute>} />
                 <Route path="/admin/editor" element={<AdminRoute><AdminEditorPage /></AdminRoute>} />
+                <Route path="/admin/settings" element={<AdminRoute><AdminSettingsPage /></AdminRoute>} />
 
                 {/* ============================================= */}
                 {/* СТРАНИЦЫ ОШИБОК */}

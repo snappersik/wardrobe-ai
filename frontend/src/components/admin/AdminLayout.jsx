@@ -2,7 +2,7 @@
 import AdminSidebar from './AdminSidebar'
 import AdminHeader from './AdminHeader'
 
-export default function AdminLayout({ children, activePage = 'dashboard' }) {
+export default function AdminLayout({ children, activePage = 'analytics' }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     return (

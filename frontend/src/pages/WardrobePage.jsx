@@ -139,7 +139,8 @@ export default function WardrobePage() {
     const fetchItems = async () => {
         try {
             setLoading(true)
-            const { data } = await api.get('/clothing')
+            // Добавляем слеш, чтобы избежать 307 Redirect и потери порта
+            const { data } = await api.get('/clothing/')
             setItems(data)
         } catch (error) {
             console.error('Failed to fetch items', error)

@@ -97,7 +97,7 @@ async def register(
             detail="Username или email уже зарегистрированы"
         )
     
-    # Шаг 2: Хешируем пароль (НИКОГДА не храним пароли в открытом виде!)
+    # Шаг 2: Хешируем пароль
     hashed_password = services.get_password_hash(user.password)
     
     # Шаг 3: Создаём нового пользователя

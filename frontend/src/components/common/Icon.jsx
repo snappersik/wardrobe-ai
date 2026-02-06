@@ -77,7 +77,9 @@ import {
     Type,             // Type
     Minus,            // Minus
     CheckCircle,      // Check circle
-    Edit2             // Редактировать 2
+    Edit2,            // Редактировать 2
+    FileJson,         // JSON файл
+    FileSpreadsheet   // Excel/CSV файл
 } from 'lucide-react';
 
 // Кастомная иконка "Вешалка" (для логотипа)
@@ -178,7 +180,12 @@ const icons = {
     'minus': Minus,
     'check-circle': CheckCircle,
     'hanger': HangerIcon,
-    'edit-2': Edit2
+    'edit-2': Edit2,
+    'file-json': FileJson,
+    'file-spreadsheet': FileSpreadsheet,
+    'file-excel': FileSpreadsheet,
+    'file-csv': FileSpreadsheet,
+    'file-pdf': FileText // Используем универсальную иконку для PDF
 };
 
 // =============================================================================

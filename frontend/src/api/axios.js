@@ -8,12 +8,15 @@
 // Axios - популярная библиотека для HTTP запросов
 import axios from 'axios'
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+
 // =============================================================================
 // СОЗДАНИЕ ЭКЗЕМПЛЯРА AXIOS С НАСТРОЙКАМИ
 // =============================================================================
 const api = axios.create({
-    // Базовый URL для всех запросов (бекенд на порту 8000)
-    baseURL: 'http://localhost:8000/api',
+    // Базовый URL для всех запросов
+    // HARDCODED FIX: Force relative path to use Vite proxy
+    baseURL: '/api',
 
     // ВАЖНО: withCredentials позволяет отправлять cookies с запросами
     // Необходимо для JWT аутентификации через httpOnly cookies
@@ -30,9 +33,28 @@ const api = axios.create({
 // =============================================================================
 // Интерсептор перехватывает ВСЕ ответы от сервера.
 // Используется для централизованной обработки ошибок и редиректов.
+// =============================================================================
+// Request Interceptor
+// =============================================================================
+api.interceptors.request.use(
+    (config) => {
+        const method = (config.method || 'get').toUpperCase()
+        const url = config.baseURL ? `${config.baseURL}${config.url || ''}` : (config.url || '')
+        console.info(`[API] ${method} ${url}`)
+        return config
+    },
+    (error) => {
+        console.error('[API] Request error:', error)
+        return Promise.reject(error)
+    }
+)
+
 api.interceptors.response.use(
     // Успешные ответы (2xx) - просто пропускаем
     (response) => {
+        const method = (response.config?.method || 'get').toUpperCase()
+        const url = response.config?.url || ''
+        console.info(`[API] ${method} ${url} -> ${response.status}`)
         return response
     },
 

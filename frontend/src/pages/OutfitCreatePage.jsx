@@ -52,7 +52,7 @@ export default function OutfitCreatePage() {
     const fetchWardrobeItems = async () => {
         try {
             setLoading(true)
-            const { data } = await api.get('/clothing')
+            const { data } = await api.get('/clothing/')
             setWardrobeItems(data)
         } catch (error) {
             console.error('Failed to fetch wardrobe items', error)

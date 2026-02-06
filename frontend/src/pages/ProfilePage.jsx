@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Navigate } from 'react-router-dom'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 import Toast from '../components/common/Toast'
@@ -9,6 +10,7 @@ import api from '../api/axios'
 
 export default function ProfilePage() {
     const { user, logout, updateProfile, deleteAccount } = useAuth()
+    const isAdmin = user?.role === 'admin'
     const [toast, setToast] = useState(null)
     const [loading, setLoading] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -121,12 +123,16 @@ export default function ProfilePage() {
             }
 
             // Обновляем остальные данные профиля
-            await updateProfile({
-                username: formData.username,
-                email: formData.email,
-                full_name: formData.name,
-                city: formData.city
-            })
+            const payload = isAdmin
+                ? { full_name: formData.name }
+                : {
+                    username: formData.username,
+                    email: formData.email,
+                    full_name: formData.name,
+                    city: formData.city
+                }
+
+            await updateProfile(payload)
             showToast('Профиль успешно обновлён!')
             setIsEditing(false) // Выход из режима редактирования после сохранения
         } catch (error) {
@@ -146,11 +152,26 @@ export default function ProfilePage() {
         }
     }
 
+    if (isAdmin) {
+        return <Navigate to="/admin/settings" replace />
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <UniversalHeader activePage="profile" user={user} />
 
             <main className="flex-grow container mx-auto max-w-4xl px-4 md:px-6 py-6">
+                {isAdmin && (
+                    <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <div className="text-sm font-semibold text-blue-700 mb-1">Профиль администратора</div>
+                            <p className="text-sm text-blue-600/90">Часть данных доступна только для просмотра. Редактировать можно имя и фото профиля.</p>
+                        </div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-blue-700 text-xs font-semibold border border-blue-100">
+                            <Icon name="lock" size={14} />
+                            Доступ ограничен</div>
+                    </div>
+                )}
                 <div className="bg-gradient-to-r from-pink-50 via-white to-purple-50 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
                     <div className="flex items-center gap-6 mb-6">
                         <div
@@ -195,9 +216,15 @@ export default function ProfilePage() {
                                         <Icon name="map-pin" size={14} />
                                         {user?.city || 'Город не указан'}
                                     </span>
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-100">
-                                        Free Plan
-                                    </span>
+                                    {isAdmin ? (
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-blue-100 text-blue-700">
+                                            Администратор
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-100">
+                                            Free Plan
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <button
@@ -219,7 +246,7 @@ export default function ProfilePage() {
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || isAdmin}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-gray-50 disabled:text-gray-500"
                                 />
                             </div>
@@ -254,9 +281,9 @@ export default function ProfilePage() {
                                     value={formData.city}
                                     onChange={handleChange}
                                     onBlur={handleCityBlur}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || isAdmin}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-gray-50 disabled:text-gray-500"
-                                    placeholder={isEditing ? "Начните вводить название..." : ""}
+                                    placeholder={isEditing && !isAdmin ? "Начните вводить название..." : ""}
                                 />
                                 <datalist id="city-list">
                                     {cities.map((city, index) => (
@@ -293,6 +320,38 @@ export default function ProfilePage() {
                     </form>
                 </div>
 
+                
+                {isAdmin && (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                                <Icon name="lock" size={18} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900">Права администратора</h3>
+                                <p className="text-sm text-gray-500">Доступ к управлению пользователями, логами и аналитикой.</p>
+                            </div>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-600 mt-4">
+                            <div className="flex items-center gap-2">
+                                <Icon name="check-circle" size={16} className="text-green-500" />
+                                Управление пользователями
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Icon name="check-circle" size={16} className="text-green-500" />
+                                Просмотр логов и уведомлений
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Icon name="check-circle" size={16} className="text-green-500" />
+                                Аналитика и отчёты
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Icon name="check-circle" size={16} className="text-green-500" />
+                                Контроль ролей и доступов
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
                         <h3 className="font-bold text-gray-900 mb-1">Настройки аккаунта</h3>
@@ -305,18 +364,21 @@ export default function ProfilePage() {
                         >
                             Выйти
                         </button>
+                        {!isAdmin && (
+
                         <button
                             onClick={() => setShowDeleteConfirm(true)}
                             className="btn bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 border-none"
                         >
                             Удалить аккаунт
                         </button>
+                        )}
                     </div>
                 </div>
             </main>
 
             {/* Модальное окно подтверждения удаления */}
-            {showDeleteConfirm && (
+            {showDeleteConfirm && !isAdmin && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl">
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">

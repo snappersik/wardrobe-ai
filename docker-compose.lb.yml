@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  backend_1:
+    build: ./backend
+    container_name: wardrobe_backend_1
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:12345@db:5432/wardrobe_ai
+      MONGO_URL: mongodb://mongo:27017
+      SECRET_KEY: KdvW21abf!nNJ1s_P6B0diWN2j
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      DEBUG: "True"
+      UPLOADS_PATH: ./uploads
+      ML_SHARED_PATH: /app/ml_shared
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ml_shared_data:/app/ml_shared
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  backend_2:
+    build: ./backend
+    container_name: wardrobe_backend_2
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:12345@db:5432/wardrobe_ai
+      MONGO_URL: mongodb://mongo:27017
+      SECRET_KEY: KdvW21abf!nNJ1s_P6B0diWN2j
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      DEBUG: "True"
+      UPLOADS_PATH: ./uploads
+      ML_SHARED_PATH: /app/ml_shared
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ml_shared_data:/app/ml_shared
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: wardrobe_lb
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ops/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend_1
+      - backend_2

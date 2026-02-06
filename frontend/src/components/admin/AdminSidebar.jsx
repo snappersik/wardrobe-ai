@@ -1,15 +1,13 @@
-﻿import { NavLink } from 'react-router-dom'
+﻿import { Link, NavLink } from 'react-router-dom'
 import Icon from '../common/Icon'
 import { useAuth } from '../../context/AuthContext'
 
 const navItems = [
-    { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard', href: '/admin' },
+    { id: 'analytics', icon: 'chart-bar', label: 'Аналитика', href: '/admin' },
     { id: 'editor', icon: 'pen-tool', label: 'Редактор', href: '/admin/editor' },
     { id: 'users', icon: 'users', label: 'Пользователи', href: '/admin/users' },
-    { id: 'analytics', icon: 'chart-bar', label: 'Аналитика', href: '/admin' },
-    { id: 'wardrobes', icon: 'hanger', label: 'Гардеробы', href: '/admin' },
     { id: 'logs', icon: 'file-text', label: 'Логи', href: '/admin/logs' },
-    { id: 'settings', icon: 'settings', label: 'Настройки', href: '/profile' },
+    { id: 'settings', icon: 'settings', label: 'Настройки', href: '/admin/settings' },
 ]
 
 export default function AdminSidebar({ isOpen, onClose, activePage = 'dashboard' }) {
@@ -23,15 +21,14 @@ export default function AdminSidebar({ isOpen, onClose, activePage = 'dashboard'
         >
             <div className="flex flex-col h-full">
                 <div className="h-20 flex items-center px-6 border-b border-white/70">
-                    <div className="flex items-center gap-3">
+                    <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white shadow-sm">
                             <Icon name="hanger" size={20} />
                         </div>
                         <div className="leading-tight">
-                            <span className="font-bold text-lg tracking-tight block">Умный</span>
-                            <span className="font-bold text-lg tracking-tight block text-primary">Гардероб</span>
+                            <span className="font-bold text-lg tracking-tight whitespace-nowrap">Умный Гардероб</span>
                         </div>
-                    </div>
+                    </Link>
                     <button
                         onClick={onClose}
                         className="lg:hidden ml-auto p-2 text-gray-400 hover:text-gray-600"
@@ -52,7 +49,7 @@ export default function AdminSidebar({ isOpen, onClose, activePage = 'dashboard'
                                 return `flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                     active
                                         ? 'bg-white text-primary shadow-sm border border-white'
-                                        : 'text-gray-600 hover:bg-white/70 hover:text-gray-800'
+                                        : 'text-gray-600 hover:bg-primary/10 hover:text-primary hover:translate-x-1 hover:shadow-sm'
                                 }`
                             }}
                         >

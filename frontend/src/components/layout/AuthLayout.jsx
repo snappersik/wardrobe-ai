@@ -17,13 +17,16 @@ const AuthLayout = ({ children }) => {
 
     // Проверяем нужно ли показать popup города
     useEffect(() => {
-        if (user) {
-            // Проверяем localStorage, показывали ли popup для этого пользователя
-            const cityConfirmed = localStorage.getItem(`city_confirmed_${user.id}`)
-            if (!cityConfirmed) {
-                // Запускаем определение города
-                detectUserCity()
-            }
+        if (!user) return
+        if (user.role === 'admin') {
+            setShowCityPopup(false)
+            return
+        }
+        // Проверяем localStorage, показывали ли popup для этого пользователя
+        const cityConfirmed = localStorage.getItem(`city_confirmed_${user.id}`)
+        if (!cityConfirmed) {
+            // Запускаем определение города
+            detectUserCity()
         }
     }, [user])
 
@@ -80,6 +83,10 @@ const AuthLayout = ({ children }) => {
     const handleCityConfirm = async () => {
         // Сохраняем флаг что город подтверждён
         if (user) {
+            if (user.role === 'admin') {
+                setShowCityPopup(false)
+                return
+            }
             localStorage.setItem(`city_confirmed_${user.id}`, 'true')
 
             // Если определённый город отличается от текущего - обновляем профиль
@@ -97,6 +104,10 @@ const AuthLayout = ({ children }) => {
     const handleCityChange = () => {
         // Сохраняем флаг и редиректим в профиль
         if (user) {
+            if (user.role === 'admin') {
+                setShowCityPopup(false)
+                return
+            }
             localStorage.setItem(`city_confirmed_${user.id}`, 'true')
         }
         setShowCityPopup(false)

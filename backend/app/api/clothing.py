@@ -104,19 +104,31 @@ async def upload_item(
         final_filename = f"{file_id}.png" # Всегда PNG для прозрачности
         final_path = f"{upload_dir}/{final_filename}"
         
-        remover = get_remover()
-        remover.remove_background(temp_path, final_path)
-        
-        logger.info(f"✓ Фон удалён: {final_path}")
-        print(f"✓ [UPLOAD] Фон удалён: {final_path}", file=sys.stderr)
+        # Fallback: если RemBG не готов/не доступен, используем оригинальный файл
+        try:
+            remover = get_remover()
+            removed = remover.remove_background(temp_path, final_path)
+            if not removed or not os.path.exists(final_path):
+                raise RuntimeError('Background removal failed or output not created')
+            logger.info(f'BG removed: {final_path}')
+            print(f'[UPLOAD] BG removed: {final_path}', file=sys.stderr)
+        except Exception as bg_error:
+            logger.warning(f'RemBG fallback, using original file: {bg_error}')
+            print(f'[UPLOAD] RemBG fallback: {bg_error}', file=sys.stderr)
+            shutil.copyfile(temp_path, final_path)
         
         # Шаг 5: Распознавание через Fashion-MNIST классификатор (ПОСЛЕ удаления фона)
         # Теперь классификатор получает PNG с прозрачным фоном - гораздо лучше!
         logger.info("🤖 Запуск классификатора...")
         print("🤖 [UPLOAD] Запуск классификатора...", file=sys.stderr)
         
-        classifier = get_classifier()
-        prediction = classifier.predict(final_path)  # Используем PNG без фона!
+        try:
+            classifier = get_classifier()
+            prediction = classifier.predict(final_path)  # PNG without background
+        except Exception as clf_error:
+            logger.warning(f'Classifier fallback: {clf_error}')
+            print(f'[UPLOAD] Classifier fallback: {clf_error}', file=sys.stderr)
+            prediction = {'id': 'unknown', 'name': 'Unknown', 'confidence': 0.0}
         
         category = prediction.get("id", "unknown")
         confidence = prediction.get("confidence", 0.0)
@@ -128,7 +140,12 @@ async def upload_item(
         logger.info("🎨 Извлечение цвета...")
         print("🎨 [UPLOAD] Извлечение цвета...", file=sys.stderr)
         
-        color_info = extract_dominant_color(final_path)
+        try:
+            color_info = extract_dominant_color(final_path)
+        except Exception as color_error:
+            logger.warning(f'Color extraction fallback: {color_error}')
+            print(f'[UPLOAD] Color fallback: {color_error}', file=sys.stderr)
+            color_info = {'name_en': 'gray', 'hex': '#808080'}
         # Используем name_en (ID цвета) для фронтенда
         color_id = color_info.get("name_en", "gray")
         color_hex = color_info.get("hex", "#808080")
