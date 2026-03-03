@@ -563,7 +563,9 @@ async def delete_outfit(
 # =============================================================================
 import random
 import itertools
-from app.ml.outfit_scorer import score_outfit, filter_items_by_weather, parse_json_field
+from app.services.plan_limits import (
+    get_max_outfits, check_generation_allowed, increment_generation_count, get_plan_limits
+)
 
 @router.post("/generate")
 async def generate_outfits(
@@ -575,23 +577,31 @@ async def generate_outfits(
 ):
     """
     Генерирует умные образы из гардероба пользователя.
-    
-    Алгоритм:
-    1. Получаем все вещи пользователя
-    2. Фильтруем по погоде/сезону
-    3. Группируем по типам (top, bottom, shoes)
-    4. Генерируем ВСЕ возможные комбинации
-    5. Оцениваем каждую комбинацию по:
-       - Цветовой гармонии (40%)
-       - Совместимости стилей (40%)
-       - Соответствию погоде (20%)
-    6. Сортируем по score и возвращаем топ-N
-    
-    Args:
-        occasion: Повод (casual, work, party, date, sport)
-        weather_category: Погода (cold, cool, warm, hot)
-        count: Количество образов (1-10)
+    Лимиты зависят от тарифного плана (free/basic/premium).
     """
+    # Lazy import ML modules
+    from app.ml.outfit_scorer import score_outfit, filter_items_by_weather, parse_json_field
+    
+    # ─── Проверка лимитов тарифного плана ─────────────────────────────────
+    plan = current_user.subscription_plan or "free"
+    max_count = get_max_outfits(plan)
+    count = min(count, max_count)
+    
+    # Проверка дневного лимита (для free)
+    gen_check = await check_generation_allowed(current_user.id, plan)
+    if not gen_check["allowed"]:
+        limits = get_plan_limits(plan)
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "message": "Дневной лимит генераций исчерпан",
+                "current_plan": plan,
+                "label_ru": limits["label_ru"],
+                "daily_limit": gen_check["daily_limit"],
+                "used_today": gen_check["used_today"],
+            }
+        )
+    
     # Получаем все вещи пользователя
     result = await db.execute(
         select(models.ClothingItem).filter(
@@ -843,8 +853,7 @@ async def generate_outfits(
 
         return selected
 
-    # Limit count and select diverse outfits
-    count = min(count, 10)
+    # Select diverse outfits (count already capped by plan)
     final_outfits = select_diverse(unique_outfits, count)
     
     # Формируем ответ
@@ -871,6 +880,10 @@ async def generate_outfits(
             "style_score": outfit["scores"]["style"],
             "weather_score": outfit["scores"]["weather"]
         })
+    
+    # Инкрементируем счётчик генераций для free-пользователей
+    if plan == "free":
+        await increment_generation_count(current_user.id)
     
     return generated_outfits
 

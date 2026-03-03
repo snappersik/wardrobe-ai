@@ -86,7 +86,8 @@ class UserResponse(BaseModel):
     email: EmailStr                         # Email адрес
     full_name: Optional[str] = None         # Полное имя
     city: str                               # Город пользователя
-    role: str                               # Роль (user, admin, premium)
+    role: str                               # Роль (user, admin)
+    subscription_plan: str = "free"         # Тарифный план (free, basic, premium)
     avatar_path: Optional[str] = None       # Путь к аватарке
     created_at: datetime                    # Дата регистрации
     
@@ -102,58 +103,49 @@ class UserResponse(BaseModel):
 class ClothingItemCreate(BaseModel):
     """
     Схема для СОЗДАНИЯ новой вещи (метаданные).
-    
-    Используется в: POST /api/clothing/confirm (подтверждение загрузки)
-    
-    Атрибуты:
-        file_id: ID временного файла (из /upload)
-        image_path: Путь к обработанному изображению
-        name: Название вещи
-        filename: Оригинальное имя файла
-        category: Категория (t-shirt, jeans, dress, shoes)
-        color: Цвета (мульти-выбор)
-        season: Сезоны (мульти-выбор)
-        style: Стили (мульти-выбор)
+    Используется в: POST /api/clothing/confirm
     """
-    file_id: Optional[str] = None           # ID временного файла
-    image_path: str                         # Путь к изображению (обязательный)
-    name: Optional[str] = None              # Название вещи
-    filename: Optional[str] = None          # Оригинальное имя файла
-    category: Optional[str] = None          # Категория одежды
-    color: Optional[List[str]] = None       # Цвета (мульти-выбор)
-    season: Optional[List[str]] = None      # Сезоны (мульти-выбор)
-    style: Optional[List[str]] = None       # Стили (мульти-выбор)
+    file_id: Optional[str] = None
+    image_path: str
+    name: Optional[str] = None
+    filename: Optional[str] = None
+    category: Optional[str] = None
+    color: Optional[List[str]] = None
+    season: Optional[List[str]] = None
+    style: Optional[List[str]] = None
+    temp_min: Optional[int] = None
+    temp_max: Optional[int] = None
+    waterproof_level: Optional[int] = 0
+    is_multicolor: Optional[bool] = False
+    color_palette: Optional[List[str]] = None
+    is_favorite: Optional[bool] = False
 
 
 class ClothingItemResponse(BaseModel):
     """
     Схема ОТВЕТА с данными вещи.
-    
     Возвращается из: GET /api/clothing, POST /api/clothing/upload
-    
-    Атрибуты:
-        id: ID вещи
-        owner_id: ID владельца
-        filename: Имя файла
-        image_path: Путь к изображению
-        category, color, season, style: Характеристики
-        wear_count: Сколько раз надевали
-        is_clean: Чистая или в стирке
-        created_at: Дата добавления
     """
-    id: int                                 # ID вещи
-    owner_id: int                           # ID владельца
-    filename: str                           # Оригинальное имя файла
-    image_path: str                         # Путь к изображению на сервере
-    category: Optional[str] = None          # Категория
-    color: Optional[List[str]] = None       # Цвета (мульти-выбор)
-    season: Optional[List[str]] = None      # Сезоны (мульти-выбор)
-    style: Optional[List[str]] = None       # Стили (мульти-выбор)
-    wear_count: int                         # Счётчик ношений
-    is_clean: bool                          # Флаг чистоты
-    created_at: datetime                    # Дата добавления
+    id: int
+    owner_id: int
+    filename: str
+    image_path: str
+    name: Optional[str] = None
+    category: Optional[str] = None
+    color: Optional[List[str]] = None
+    season: Optional[List[str]] = None
+    style: Optional[List[str]] = None
+    temp_min: Optional[int] = None
+    temp_max: Optional[int] = None
+    waterproof_level: int = 0
+    is_multicolor: bool = False
+    color_palette: Optional[List[str]] = None
+    is_favorite: bool = False
+    wear_count: int = 0
+    is_clean: bool = True
+    created_at: datetime
     
-    @validator('color', 'season', 'style', pre=True)
+    @validator('color', 'season', 'style', 'color_palette', pre=True)
     def parse_json_array(cls, v):
         """Парсит JSON-строку из БД в список."""
         if v is None:
@@ -165,25 +157,29 @@ class ClothingItemResponse(BaseModel):
             try:
                 return json.loads(v)
             except:
-                return [v]  # Если это простая строка, оборачиваем в список
+                return [v]
         return v
     
     class Config:
-        # Поддержка SQLAlchemy ORM моделей
         from_attributes = True
 
 
 class ClothingItemUpdate(BaseModel):
     """
     Схема для ОБНОВЛЕНИЯ вещи.
-    
     Используется в: PUT /api/clothing/{id}
     """
-    name: Optional[str] = None              # Название
-    category: Optional[str] = None          # Категория
-    color: Optional[List[str]] = None       # Цвета (мульти-выбор)
-    season: Optional[List[str]] = None      # Сезоны (мульти-выбор)
-    style: Optional[List[str]] = None       # Стили (мульти-выбор)
+    name: Optional[str] = None
+    category: Optional[str] = None
+    color: Optional[List[str]] = None
+    season: Optional[List[str]] = None
+    style: Optional[List[str]] = None
+    temp_min: Optional[int] = None
+    temp_max: Optional[int] = None
+    waterproof_level: Optional[int] = None
+    is_multicolor: Optional[bool] = None
+    color_palette: Optional[List[str]] = None
+    is_favorite: Optional[bool] = None
 
 # =============================================================================
 # СХЕМЫ ОБРАЗОВ (Outfit Schemas)

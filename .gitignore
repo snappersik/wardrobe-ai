@@ -46,6 +46,8 @@ runs/
 weights/
 models/
 datasets/
+*.onnx
+*.pt
 
 # Database
 *.db

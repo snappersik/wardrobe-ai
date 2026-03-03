@@ -1,31 +1,29 @@
 // =============================================================================
-// МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ВЕЩИ (ItemEditModal.jsx)
+// МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ВЕЩИ (ItemEditModal.jsx) — Phase 2
 // =============================================================================
-// Отображается после загрузки фото для редактирования параметров вещи:
-// категория, цвет, сезон, стиль.
+// Поддерживает 46 категорий (группированных), умный выбор цвета (5 вариантов ИИ),
+// температурный слайдер, индикатор влагозащиты, палитру цветов.
 // =============================================================================
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Icon from '../common/Icon'
 import api from '../../api/axios'
-
-// Категории одежды
 import clothingCategories from '../../data/clothing-categories.json'
 
-// Доступные цвета с русскими прилагательными для названий
+// Доступные цвета (запасной вариант)
 const COLORS = [
-    { id: 'black', name: 'Чёрный', hex: '#000000', adjective: 'черн' },
-    { id: 'white', name: 'Белый', hex: '#FFFFFF', adjective: 'бел' },
-    { id: 'gray', name: 'Серый', hex: '#9CA3AF', adjective: 'сер' },
-    { id: 'red', name: 'Красный', hex: '#EF4444', adjective: 'красн' },
-    { id: 'orange', name: 'Оранжевый', hex: '#F97316', adjective: 'оранжев' },
-    { id: 'yellow', name: 'Жёлтый', hex: '#EAB308', adjective: 'желт' },
-    { id: 'green', name: 'Зелёный', hex: '#22C55E', adjective: 'зелен' },
-    { id: 'blue', name: 'Синий', hex: '#3B82F6', adjective: 'син' },
-    { id: 'purple', name: 'Фиолетовый', hex: '#A855F7', adjective: 'фиолетов' },
-    { id: 'pink', name: 'Розовый', hex: '#EC4899', adjective: 'розов' },
-    { id: 'brown', name: 'Коричневый', hex: '#92400E', adjective: 'коричнев' },
-    { id: 'beige', name: 'Бежевый', hex: '#D4B896', adjective: 'бежев' }
+    { id: 'black', name: 'Чёрный', hex: '#000000' },
+    { id: 'white', name: 'Белый', hex: '#FFFFFF' },
+    { id: 'gray', name: 'Серый', hex: '#9CA3AF' },
+    { id: 'red', name: 'Красный', hex: '#EF4444' },
+    { id: 'orange', name: 'Оранжевый', hex: '#F97316' },
+    { id: 'yellow', name: 'Жёлтый', hex: '#EAB308' },
+    { id: 'green', name: 'Зелёный', hex: '#22C55E' },
+    { id: 'blue', name: 'Синий', hex: '#3B82F6' },
+    { id: 'purple', name: 'Фиолетовый', hex: '#A855F7' },
+    { id: 'pink', name: 'Розовый', hex: '#EC4899' },
+    { id: 'brown', name: 'Коричневый', hex: '#92400E' },
+    { id: 'beige', name: 'Бежевый', hex: '#D4B896' }
 ]
 
 // Сезоны
@@ -33,8 +31,7 @@ const SEASONS = [
     { id: 'winter', name: 'Зима', icon: '❄️' },
     { id: 'spring', name: 'Весна', icon: '🌸' },
     { id: 'summer', name: 'Лето', icon: '☀️' },
-    { id: 'autumn', name: 'Осень', icon: '🍂' },
-    { id: 'all', name: 'Всесезонная', icon: '📅' }
+    { id: 'fall', name: 'Осень', icon: '🍂' }
 ]
 
 // Стили
@@ -43,125 +40,148 @@ const STYLES = [
     { id: 'formal', name: 'Деловой' },
     { id: 'sport', name: 'Спортивный' },
     { id: 'party', name: 'Вечерний' },
-    { id: 'street', name: 'Уличный' }
+    { id: 'street', name: 'Уличный' },
+    { id: 'ethnic', name: 'Этнический' },
+    { id: 'vintage', name: 'Винтаж' }
 ]
 
-// Окончания прилагательных в зависимости от рода категории
-const CATEGORY_GENDER = {
-    't-shirt': 'f',    // футболка - ж.р.
-    'trouser': 'm',    // брюки - мн.ч.
-    'pullover': 'm',   // пуловер - м.р.
-    'dress': 'n',      // платье - ср.р.
-    'coat': 'n',       // пальто - ср.р.
-    'sandal': 'f',     // сандалии - мн.ч. (женские окончания)
-    'shirt': 'f',      // рубашка - ж.р.
-    'sneaker': 'm',    // кроссовки - мн.ч.
-    'bag': 'f',        // сумка - ж.р.
-    'ankle-boot': 'm', // ботинки - мн.ч.
-    'unknown': 'm'     // по умолчанию м.р.
+// Группировка категорий из JSON
+function buildCategoryGroups() {
+    const groups = {}
+    for (const cat of clothingCategories) {
+        const g = cat.group || 'Другое'
+        if (!groups[g]) groups[g] = []
+        groups[g].push(cat)
+    }
+    return Object.entries(groups).map(([group, cats]) => ({ group, categories: cats }))
+}
+const CATEGORY_GROUPS = buildCategoryGroups()
+
+
+// Водная капля — визуальный индикатор влагозащиты (0-4)
+function WaterDroplets({ level, onChange }) {
+    return (
+        <div className="flex items-center gap-1">
+            {[0, 1, 2, 3, 4].map(i => (
+                <button
+                    key={i}
+                    type="button"
+                    onClick={() => onChange(i)}
+                    className={`text-lg transition-all ${i <= level ? 'opacity-100 scale-110' : 'opacity-25 grayscale'}`}
+                    title={['Нет защиты', 'Минимальная', 'Средняя', 'Хорошая', 'Полная'][i]}
+                >
+                    💧
+                </button>
+            ))}
+            <span className="ml-2 text-xs text-gray-400">
+                {['Нет', 'Мин.', 'Средняя', 'Хорошая', 'Полная'][level]}
+            </span>
+        </div>
+    )
 }
 
-// Генерация склонённого прилагательного цвета
-function getColorAdjective(colorId, gender) {
-    const color = COLORS.find(c => c.id === colorId)
-    if (!color) return ''
-
-    const base = color.adjective
-    const endings = {
-        'm': 'ый',  // мужской род / мн.ч.
-        'f': 'ая',  // женский род
-        'n': 'ое'   // средний род
-    }
-
-    // Особые случаи
-    if (colorId === 'blue') {
-        return gender === 'f' ? 'синяя' : gender === 'n' ? 'синее' : 'синий'
-    }
-
-    return base + (endings[gender] || 'ый')
+// Слайдер для температурного диапазона
+function TempRangeSlider({ min, max, onChange }) {
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>-25°C</span>
+                <span className="font-semibold text-sm text-gray-800">{min}°C — {max}°C</span>
+                <span>+40°C</span>
+            </div>
+            <div className="flex gap-3 items-center">
+                <input
+                    type="range"
+                    min={-25}
+                    max={40}
+                    value={min}
+                    onChange={(e) => onChange(Math.min(+e.target.value, max - 1), max)}
+                    className="flex-1 accent-blue-500 h-2"
+                />
+                <input
+                    type="range"
+                    min={-25}
+                    max={40}
+                    value={max}
+                    onChange={(e) => onChange(min, Math.max(+e.target.value, min + 1))}
+                    className="flex-1 accent-red-400 h-2"
+                />
+            </div>
+            <div className="flex gap-1 text-xs text-gray-400">
+                <span>❄️ Мин</span>
+                <span className="ml-auto">☀️ Макс</span>
+            </div>
+        </div>
+    )
 }
 
-// Генерация названия вещи на основе категории и цветов
-function generateItemName(categoryId, colorIds) {
-    const category = clothingCategories.find(c => c.id === categoryId)
-    const categoryName = category?.name || 'Вещь'
-    const gender = CATEGORY_GENDER[categoryId] || 'm'
 
-    if (!colorIds || colorIds.length === 0) {
-        return categoryName
-    }
-
-    if (colorIds.length > 2) {
-        // Больше 2 цветов = разноцветная
-        const multiEndings = { m: 'ый', f: 'ая', n: 'ое' }
-        return `${categoryName} разноцветн${multiEndings[gender] || 'ый'}`
-    }
-
-    if (colorIds.length === 2) {
-        // 2 цвета = бело-розовая, черно-белая и т.д.
-        const color1 = COLORS.find(c => c.id === colorIds[0])
-        const color2Adj = getColorAdjective(colorIds[1], gender)
-        // Первый цвет с "о" на конце
-        const color1Base = color1?.adjective || ''
-        return `${categoryName} ${color1Base}о-${color2Adj}`
-    }
-
-    // 1 цвет
-    const colorAdj = getColorAdjective(colorIds[0], gender)
-    return `${categoryName} ${colorAdj}`
-}
-
-/**
- * Модальное окно редактирования параметров вещи.
- * 
- * @param {boolean} isOpen - Открыто ли окно
- * @param {Object} item - Данные загруженной вещи
- * @param {function} onSave - Callback после сохранения
- * @param {function} onClose - Callback закрытия
- */
 export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
     const [saving, setSaving] = useState(false)
+    const [expandedGroup, setExpandedGroup] = useState(null)
+    const [showAllColors, setShowAllColors] = useState(false)
 
-    // Форма редактирования
-    // color, season, style - всё массивы для мульти-выбора
     const [formData, setFormData] = useState({
         name: '',
-        category: item?.category || 'unknown',
-        color: Array.isArray(item?.color) ? item.color : (item?.color ? [item.color] : ['black']),
-        season: Array.isArray(item?.season) ? item.season : (item?.season ? [item.season] : ['all']),
-        style: Array.isArray(item?.style) ? item.style : (item?.style ? [item.style] : ['casual'])
+        category: 'tee',
+        color: ['black'],
+        season: ['spring', 'summer', 'fall'],
+        style: ['casual'],
+        temp_min: 15,
+        temp_max: 35,
+        waterproof_level: 0,
+        is_multicolor: false,
+        color_palette: [],
+        is_favorite: false,
     })
 
-    // Обновляем форму при изменении item
+    // Рекомендации ИИ по цвету
+    const [colorSuggestions, setColorSuggestions] = useState([])
+
+    // Инициализация формы при изменении item
     useEffect(() => {
         if (item) {
             const colors = Array.isArray(item.color) ? item.color : (item.color ? [item.color] : ['black'])
-            const category = item.category || 'unknown'
+            const category = item.category || 'tee'
+            const seasons = Array.isArray(item.seasons) ? item.seasons
+                : Array.isArray(item.season) ? item.season
+                    : (item.season ? [item.season] : ['spring', 'summer', 'fall'])
+
+            const catObj = clothingCategories.find(c => c.id === category)
 
             setFormData({
-                name: generateItemName(category, colors),
+                name: item.name || catObj?.name || 'Вещь',
                 category: category,
                 color: colors,
-                season: Array.isArray(item.season) ? item.season : (item.season ? [item.season] : ['all']),
-                style: Array.isArray(item.style) ? item.style : (item.style ? [item.style] : ['casual'])
+                season: seasons,
+                style: Array.isArray(item.style) ? item.style : (item.style ? [item.style] : ['casual']),
+                temp_min: item.temp_min ?? 15,
+                temp_max: item.temp_max ?? 35,
+                waterproof_level: item.waterproof_level ?? 0,
+                is_multicolor: item.is_multicolor ?? false,
+                color_palette: item.color_palette ?? [],
+                is_favorite: item.is_favorite ?? false,
             })
+
+            // Установить рекомендации ИИ если есть
+            if (item.color_suggestions && item.color_suggestions.length > 0) {
+                setColorSuggestions(item.color_suggestions)
+                setShowAllColors(false)
+            } else {
+                setColorSuggestions([])
+                setShowAllColors(true)
+            }
+
+            // Авто-раскрыть группу текущей категории
+            if (catObj) setExpandedGroup(catObj.group)
         }
     }, [item])
 
-    // Обновляем название при изменении категории или цветов
-    useEffect(() => {
-        const newName = generateItemName(formData.category, formData.color)
-        setFormData(prev => ({ ...prev, name: newName }))
-    }, [formData.category, formData.color])
-
-    // Обработчик ESC для закрытия
+    // ESC + блокировка скролла
     const handleKeyDown = useCallback((e) => {
-        if (e.key === 'Escape') {
-            onClose?.()
-        }
+        if (e.key === 'Escape') onClose?.()
     }, [onClose])
 
-    // Подписка на ESC и блокировка прокрутки body
     useEffect(() => {
         if (isOpen) {
             document.addEventListener('keydown', handleKeyDown)
@@ -173,50 +193,32 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
         }
     }, [isOpen, handleKeyDown])
 
-    // Toggle цвета (добавить/убрать)
-    const toggleColor = (colorId) => {
+    // Toggle helpers
+    const toggleArray = (field, id) => {
         setFormData(prev => {
-            const current = prev.color || []
-            if (current.includes(colorId)) {
-                const newColors = current.filter(c => c !== colorId)
-                return { ...prev, color: newColors.length > 0 ? newColors : current }
-            } else {
-                return { ...prev, color: [...current, colorId] }
+            const arr = prev[field] || []
+            if (arr.includes(id)) {
+                const next = arr.filter(x => x !== id)
+                return { ...prev, [field]: next.length > 0 ? next : arr }
             }
+            return { ...prev, [field]: [...arr, id] }
         })
     }
 
-    // Toggle сезона (добавить/убрать)
-    const toggleSeason = (seasonId) => {
+    // Выбор рекомендованного цвета ИИ
+    const selectSuggestedColor = (suggestion) => {
         setFormData(prev => {
-            const current = prev.season || []
-            if (current.includes(seasonId)) {
-                const newSeasons = current.filter(s => s !== seasonId)
-                return { ...prev, season: newSeasons.length > 0 ? newSeasons : current }
-            } else {
-                return { ...prev, season: [...current, seasonId] }
-            }
-        })
-    }
-
-    // Toggle стиля (добавить/убрать)
-    const toggleStyle = (styleId) => {
-        setFormData(prev => {
-            const currentStyles = prev.style || []
-            if (currentStyles.includes(styleId)) {
-                // Убираем стиль, но не позволяем пустой массив
-                const newStyles = currentStyles.filter(s => s !== styleId)
-                return { ...prev, style: newStyles.length > 0 ? newStyles : currentStyles }
-            } else {
-                // Добавляем стиль
-                return { ...prev, style: [...currentStyles, styleId] }
+            const colorId = suggestion.id || suggestion.name_en
+            const exists = prev.color.includes(colorId)
+            return {
+                ...prev,
+                color: exists ? prev.color : [colorId]
             }
         })
     }
 
     if (!isOpen || !item) return null
 
-    // URL изображения
     const imageUrl = item.image_path
         ? `${api.defaults.baseURL.replace('/api', '')}/${item.image_path}`
         : 'https://via.placeholder.com/300x400?text=No+Image'
@@ -224,21 +226,29 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
     const handleSave = async () => {
         setSaving(true)
         try {
+            const payload = {
+                name: formData.name,
+                category: formData.category,
+                color: formData.color,
+                season: formData.season,
+                style: formData.style,
+                temp_min: formData.temp_min,
+                temp_max: formData.temp_max,
+                waterproof_level: formData.waterproof_level,
+                is_multicolor: formData.is_multicolor,
+                color_palette: formData.color_palette,
+                is_favorite: formData.is_favorite,
+            }
+
             if (item.pending) {
-                // Новая вещь (после загрузки) - подтверждаем сохранение в БД
                 await api.post('/clothing/confirm', {
+                    ...payload,
                     file_id: item.file_id,
                     image_path: item.image_path,
-                    name: formData.name,
                     filename: item.filename,
-                    category: formData.category,
-                    color: formData.color,
-                    season: formData.season,
-                    style: formData.style
                 })
             } else {
-                // Существующая вещь - обновляем через PUT
-                await api.put(`/clothing/${item.id}`, formData)
+                await api.put(`/clothing/${item.id}`, payload)
             }
             onSave?.()
         } catch (error) {
@@ -254,22 +264,17 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
             className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
             onClick={(e) => e.target === e.currentTarget && onClose?.()}
         >
-            <div className="bg-white rounded-2xl w-full max-w-4xl p-6 shadow-2xl my-8">
+            <div className="bg-white rounded-2xl w-full max-w-4xl p-6 shadow-2xl my-8 animate-scale-in">
                 {/* Заголовок */}
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-gray-900">Проверьте данные</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 p-1"
-                        title="Закрыть (Esc)"
-                    >
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1" title="Закрыть (Esc)">
                         <Icon name="x" size={24} />
                     </button>
                 </div>
 
-                {/* Контент - адаптивный грид */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Левая колонка - изображение */}
+                    {/* Изображение */}
                     <div className="md:col-span-1">
                         <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center sticky top-0">
                             <img
@@ -282,9 +287,25 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
                                 ✓ Фон удалён
                             </div>
                         </div>
+                        {/* Палитра под изображением */}
+                        {formData.color_palette?.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs text-gray-400 mb-1">Палитра</p>
+                                <div className="flex gap-1">
+                                    {formData.color_palette.map((hex, i) => (
+                                        <div
+                                            key={i}
+                                            className="w-8 h-8 rounded-lg border border-gray-200 shadow-sm"
+                                            style={{ backgroundColor: hex }}
+                                            title={hex}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Правая колонка - форма */}
+                    {/* Форма */}
                     <div className="md:col-span-2 space-y-4">
                         {/* Название */}
                         <div>
@@ -298,62 +319,135 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
                             />
                         </div>
 
-                        {/* Категория */}
+                        {/* ============ КАТЕГОРИЯ (группированная) ============ */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Категория
                                 <span className="text-xs text-gray-400 ml-2">(определено ИИ)</span>
                             </label>
-                            <div className="flex flex-wrap gap-2">
-                                {clothingCategories.filter(c => c.id !== 'unknown').map(cat => (
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
+                                {CATEGORY_GROUPS.map(({ group, categories }) => (
+                                    <div key={group}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpandedGroup(expandedGroup === group ? null : group)}
+                                            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${categories.some(c => c.id === formData.category)
+                                                    ? 'bg-primary/10 text-primary'
+                                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            <span>{group}</span>
+                                            <Icon name={expandedGroup === group ? 'chevron-up' : 'chevron-down'} size={14} />
+                                        </button>
+                                        {expandedGroup === group && (
+                                            <div className="flex flex-wrap gap-1.5 mt-1.5 ml-2">
+                                                {categories.map(cat => (
+                                                    <button
+                                                        key={cat.id}
+                                                        onClick={() => setFormData({ ...formData, category: cat.id })}
+                                                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${formData.category === cat.id
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                            }`}
+                                                    >
+                                                        {cat.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ============ ЦВЕТ — ИИ-РЕКОМЕНДАЦИИ ============ */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                🎨 Цвет
+                                {colorSuggestions.length > 0 && (
+                                    <span className="text-xs text-primary ml-2">— рекомендации ИИ</span>
+                                )}
+                            </label>
+
+                            {/* Рекомендации ИИ (5 больших кружков) */}
+                            {colorSuggestions.length > 0 && !showAllColors && (
+                                <div className="mb-3">
+                                    <p className="text-xs text-gray-400 mb-2">Выберите самый близкий к реальному цвету:</p>
+                                    <div className="flex flex-wrap gap-3">
+                                        {colorSuggestions.map((s, i) => {
+                                            const isSelected = formData.color.includes(s.id || s.name_en)
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => selectSuggestedColor(s)}
+                                                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${isSelected
+                                                            ? 'bg-primary/10 ring-2 ring-primary scale-105'
+                                                            : 'hover:bg-gray-50 hover:scale-105'
+                                                        }`}
+                                                    title={`${s.name_ru} (${s.label})`}
+                                                >
+                                                    <div
+                                                        className={`w-12 h-12 rounded-xl border-2 shadow-sm ${isSelected ? 'border-primary' : 'border-gray-200'
+                                                            }`}
+                                                        style={{ backgroundColor: s.hex }}
+                                                    />
+                                                    <span className="text-[10px] text-gray-500">{s.label}</span>
+                                                    <span className="text-[10px] font-medium text-gray-700">{s.name_ru}</span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
                                     <button
-                                        key={cat.id}
-                                        onClick={() => setFormData({ ...formData, category: cat.id })}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${formData.category === cat.id
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                            }`}
+                                        type="button"
+                                        onClick={() => setShowAllColors(true)}
+                                        className="mt-2 text-xs text-primary hover:underline"
                                     >
-                                        {cat.name}
+                                        Показать все цвета →
                                     </button>
-                                ))}
-                            </div>
+                                </div>
+                            )}
+
+                            {/* Стандартная палитра (12 кружков) */}
+                            {(showAllColors || colorSuggestions.length === 0) && (
+                                <div>
+                                    {colorSuggestions.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAllColors(false)}
+                                            className="mb-2 text-xs text-primary hover:underline"
+                                        >
+                                            ← Вернуться к рекомендациям ИИ
+                                        </button>
+                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                        {COLORS.map(color => (
+                                            <button
+                                                key={color.id}
+                                                onClick={() => toggleArray('color', color.id)}
+                                                className={`w-8 h-8 rounded-full border-2 transition-all ${(formData.color || []).includes(color.id)
+                                                        ? 'border-primary scale-110 ring-2 ring-primary/30'
+                                                        : 'border-gray-200 hover:scale-105'
+                                                    }`}
+                                                style={{ backgroundColor: color.hex }}
+                                                title={color.name}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Цвет (мульти-выбор) */}
+                        {/* ============ СЕЗОН (мульти-выбор) ============ */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Цвет <span className="text-xs text-gray-400">(можно выбрать несколько)</span>
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                                {COLORS.map(color => (
-                                    <button
-                                        key={color.id}
-                                        onClick={() => toggleColor(color.id)}
-                                        className={`w-8 h-8 rounded-full border-2 transition-all ${(formData.color || []).includes(color.id)
-                                            ? 'border-primary scale-110 ring-2 ring-primary/30'
-                                            : 'border-gray-200 hover:scale-105'
-                                            }`}
-                                        style={{ backgroundColor: color.hex }}
-                                        title={color.name}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Сезон (мульти-выбор) */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Сезон <span className="text-xs text-gray-400">(можно выбрать несколько)</span>
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Сезон</label>
                             <div className="flex flex-wrap gap-2">
                                 {SEASONS.map(season => (
                                     <button
                                         key={season.id}
-                                        onClick={() => toggleSeason(season.id)}
+                                        onClick={() => toggleArray('season', season.id)}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${(formData.season || []).includes(season.id)
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-primary text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                             }`}
                                     >
                                         {season.icon} {season.name}
@@ -362,19 +456,17 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
                             </div>
                         </div>
 
-                        {/* Стиль (мульти-выбор) */}
+                        {/* ============ СТИЛЬ (мульти-выбор) ============ */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Стиль <span className="text-xs text-gray-400">(можно выбрать несколько)</span>
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Стиль</label>
                             <div className="flex flex-wrap gap-2">
                                 {STYLES.map(style => (
                                     <button
                                         key={style.id}
-                                        onClick={() => toggleStyle(style.id)}
+                                        onClick={() => toggleArray('style', style.id)}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${(formData.style || []).includes(style.id)
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-primary text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                             }`}
                                     >
                                         {style.name}
@@ -383,7 +475,30 @@ export default function ItemEditModal({ isOpen, item, onSave, onClose }) {
                             </div>
                         </div>
 
-                        {/* Кнопка сохранения */}
+                        {/* ============ ТЕМПЕРАТУРНЫЙ ДИАПАЗОН ============ */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                🌡️ Температурный режим
+                            </label>
+                            <TempRangeSlider
+                                min={formData.temp_min}
+                                max={formData.temp_max}
+                                onChange={(min, max) => setFormData(prev => ({ ...prev, temp_min: min, temp_max: max }))}
+                            />
+                        </div>
+
+                        {/* ============ ВЛАГОЗАЩИТА ============ */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                💧 Влагозащита
+                            </label>
+                            <WaterDroplets
+                                level={formData.waterproof_level}
+                                onChange={(lvl) => setFormData(prev => ({ ...prev, waterproof_level: lvl }))}
+                            />
+                        </div>
+
+                        {/* ============ КНОПКА СОХРАНЕНИЯ ============ */}
                         <button
                             onClick={handleSave}
                             disabled={saving}

@@ -204,7 +204,7 @@ export default function OutfitsPage() {
     // РЕНДЕР СТРАНИЦЫ
     // ==========================================================================
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen page-gradient flex flex-col">
             {/* Шапка с навигацией */}
             <UniversalHeader activePage="outfits" user={user} />
 
@@ -237,34 +237,39 @@ export default function OutfitsPage() {
                 {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3].map(n => (
-                            <div key={n} className="bg-white rounded-2xl p-4 h-80 animate-pulse">
-                                <div className="w-full h-48 bg-gray-200 rounded-xl mb-4"></div>
-                                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                            <div key={n} className="bg-white rounded-2xl p-4 h-80 shadow-sm border border-gray-100/50">
+                                <div className="w-full h-48 skeleton mb-4"></div>
+                                <div className="h-5 skeleton w-3/4 mb-2"></div>
+                                <div className="h-4 skeleton w-1/2"></div>
                             </div>
                         ))}
                     </div>
                 ) : filteredOutfits.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-48 h-48 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                            <Icon name="layers" size={96} className="text-gray-300" />
+                    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-up">
+                        <div className="relative mb-8">
+                            <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center animate-float shadow-lg shadow-purple-100/40">
+                                <Icon name="layers" size={56} className="text-purple-400/60" />
+                            </div>
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-200/40 rounded-full" />
+                            <div className="absolute -bottom-1 -left-3 w-4 h-4 bg-pink-200/60 rounded-full" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Нет сохранённых образов</h3>
-                        <p className="text-gray-500 max-w-xs mb-8">Создайте свой первый образ вручную или с помощью AI генератора</p>
+                        <p className="text-gray-400 max-w-xs mb-8 text-sm leading-relaxed">Создайте свой первый образ вручную или с помощью AI генератора</p>
                         <button
                             onClick={handleCreateClick}
-                            className="btn btn-primary px-8"
+                            className="btn btn-primary px-8 shadow-lg shadow-pink-200/50"
                         >
                             Создать образ
                         </button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 md:pb-0">
-                        {filteredOutfits.map(outfit => (
+                        {filteredOutfits.map((outfit, index) => (
                             <div
                                 key={outfit.id}
                                 onClick={() => navigate(`/outfits/${outfit.id}`)}
-                                className="text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 card-hover cursor-pointer"
+                                className="text-left bg-white rounded-2xl overflow-hidden shadow-card border border-gray-100/60 card-hover cursor-pointer animate-fade-up group"
+                                style={{ animationDelay: `${Math.min(index * 0.06, 0.3)}s` }}
                             >
                                 <div className="relative h-48 bg-gray-50 p-3">
                                     <div className="grid grid-cols-2 gap-2 h-full">
@@ -293,7 +298,7 @@ export default function OutfitsPage() {
                                         )}
                                     </div>
                                     <div className="absolute top-3 right-3 flex gap-2">
-                                        <div className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium">
+                                        <div className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-xs font-medium shadow-sm border border-white/40">
                                             {outfit.occasion}
                                         </div>
                                         <button

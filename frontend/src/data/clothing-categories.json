@@ -1,57 +1,278 @@
 [
     {
-        "id": "t-shirt",
+        "id": "tee",
         "name": "Футболка",
-        "type": "top"
+        "type": "top",
+        "group": "Верх"
     },
     {
-        "id": "trouser",
-        "name": "Брюки",
-        "type": "bottom"
+        "id": "top",
+        "name": "Топ",
+        "type": "top",
+        "group": "Верх"
     },
     {
-        "id": "pullover",
-        "name": "Пуловер",
-        "type": "top"
+        "id": "tank",
+        "name": "Майка",
+        "type": "top",
+        "group": "Верх"
     },
     {
-        "id": "dress",
-        "name": "Платье",
-        "type": "full"
+        "id": "blouse",
+        "name": "Блузка",
+        "type": "top",
+        "group": "Верх"
+    },
+    {
+        "id": "button-down",
+        "name": "Рубашка",
+        "type": "top",
+        "group": "Верх"
+    },
+    {
+        "id": "halter",
+        "name": "Топ-халтер",
+        "type": "top",
+        "group": "Верх"
+    },
+    {
+        "id": "henley",
+        "name": "Хенли",
+        "type": "top",
+        "group": "Верх"
+    },
+    {
+        "id": "jersey",
+        "name": "Джерси",
+        "type": "top",
+        "group": "Верх"
+    },
+    {
+        "id": "flannel",
+        "name": "Фланелевая рубашка",
+        "type": "top",
+        "group": "Верх"
+    },
+    {
+        "id": "sweater",
+        "name": "Свитер",
+        "type": "top",
+        "group": "Свитеры и кардиганы"
+    },
+    {
+        "id": "cardigan",
+        "name": "Кардиган",
+        "type": "top",
+        "group": "Свитеры и кардиганы"
+    },
+    {
+        "id": "hoodie",
+        "name": "Худи",
+        "type": "top",
+        "group": "Свитеры и кардиганы"
+    },
+    {
+        "id": "turtleneck",
+        "name": "Водолазка",
+        "type": "top",
+        "group": "Свитеры и кардиганы"
+    },
+    {
+        "id": "poncho",
+        "name": "Пончо",
+        "type": "top",
+        "group": "Свитеры и кардиганы"
+    },
+    {
+        "id": "jacket",
+        "name": "Куртка",
+        "type": "top",
+        "group": "Верхняя одежда"
     },
     {
         "id": "coat",
         "name": "Пальто",
-        "type": "top"
+        "type": "top",
+        "group": "Верхняя одежда"
     },
     {
-        "id": "sandal",
-        "name": "Сандалии",
-        "type": "shoes"
+        "id": "blazer",
+        "name": "Блейзер",
+        "type": "top",
+        "group": "Верхняя одежда"
     },
     {
-        "id": "shirt",
-        "name": "Рубашка",
-        "type": "top"
+        "id": "parka",
+        "name": "Парка",
+        "type": "top",
+        "group": "Верхняя одежда"
+    },
+    {
+        "id": "peacoat",
+        "name": "Бушлат",
+        "type": "top",
+        "group": "Верхняя одежда"
+    },
+    {
+        "id": "jeans",
+        "name": "Джинсы",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "chinos",
+        "name": "Чиносы",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "shorts",
+        "name": "Шорты",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "skirt",
+        "name": "Юбка",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "joggers",
+        "name": "Джоггеры",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "leggings",
+        "name": "Леггинсы",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "sweatpants",
+        "name": "Спортивные штаны",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "culottes",
+        "name": "Кюлоты",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "capris",
+        "name": "Бриджи",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "cutoffs",
+        "name": "Шорты обрезные",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "sweatshorts",
+        "name": "Спортивные шорты",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "sarong",
+        "name": "Саронг",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "gauchos",
+        "name": "Гаучо",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "trunks",
+        "name": "Плавки",
+        "type": "bottom",
+        "group": "Низ"
+    },
+    {
+        "id": "dress",
+        "name": "Платье",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "sundress",
+        "name": "Сарафан",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "shirtdress",
+        "name": "Платье-рубашка",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "jumpsuit",
+        "name": "Комбинезон",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "romper",
+        "name": "Ромпер",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "kaftan",
+        "name": "Кафтан",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "kimono",
+        "name": "Кимоно",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "nightdress",
+        "name": "Ночная сорочка",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "onesie",
+        "name": "Комбинезон (слитный)",
+        "type": "full",
+        "group": "Платья и комбинезоны"
+    },
+    {
+        "id": "robe",
+        "name": "Халат",
+        "type": "full",
+        "group": "Платья и комбинезоны"
     },
     {
         "id": "sneaker",
         "name": "Кроссовки",
-        "type": "shoes"
+        "type": "shoes",
+        "group": "Обувь"
     },
     {
-        "id": "bag",
-        "name": "Сумка",
-        "type": "accessory"
-    },
-    {
-        "id": "ankle-boot",
+        "id": "boots",
         "name": "Ботинки",
-        "type": "shoes"
+        "type": "shoes",
+        "group": "Обувь"
     },
     {
-        "id": "unknown",
-        "name": "Другое",
-        "type": "other"
+        "id": "sandal",
+        "name": "Сандалии",
+        "type": "shoes",
+        "group": "Обувь"
     }
 ]

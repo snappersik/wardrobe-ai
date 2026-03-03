@@ -7,6 +7,7 @@ const navItems = [
     { id: 'editor', icon: 'pen-tool', label: 'Редактор', href: '/admin/editor' },
     { id: 'users', icon: 'users', label: 'Пользователи', href: '/admin/users' },
     { id: 'logs', icon: 'file-text', label: 'Логи', href: '/admin/logs' },
+    { id: 'ml', icon: 'cpu', label: 'ML Обучение', href: '/admin/ml' },
     { id: 'settings', icon: 'settings', label: 'Настройки', href: '/admin/settings' },
 ]
 
@@ -15,9 +16,8 @@ export default function AdminSidebar({ isOpen, onClose, activePage = 'dashboard'
 
     return (
         <aside
-            className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-white/80 backdrop-blur-xl border-r border-white/70 shadow-sm transform transition-transform duration-300 lg:translate-x-0 ${
-                isOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}
+            className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-white/80 backdrop-blur-xl border-r border-white/70 shadow-sm transform transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
         >
             <div className="flex flex-col h-full">
                 <div className="h-20 flex items-center px-6 border-b border-white/70">
@@ -46,11 +46,10 @@ export default function AdminSidebar({ isOpen, onClose, activePage = 'dashboard'
                             end={item.href === '/admin'}
                             className={({ isActive }) => {
                                 const active = isActive || activePage === item.id
-                                return `flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium transition-all ${
-                                    active
+                                return `flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium transition-all ${active
                                         ? 'bg-white text-primary shadow-sm border border-white'
                                         : 'text-gray-600 hover:bg-primary/10 hover:text-primary hover:translate-x-1 hover:shadow-sm'
-                                }`
+                                    }`
                             }}
                         >
                             <Icon name={item.icon} size={18} />

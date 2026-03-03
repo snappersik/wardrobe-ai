@@ -235,6 +235,62 @@ def extract_color_palette(image_path: str, k: int = 5) -> List[Dict]:
 
 
 # =============================================================================
+# УМНЫЙ ВЫБОР ЦВЕТА — 5 ВАРИАНТОВ (Smart Color Suggestions)
+# =============================================================================
+import colorsys
+
+def _clamp(v, lo=0.0, hi=1.0):
+    return max(lo, min(hi, v))
+
+def _hsl_variant(rgb: Tuple[int, int, int], dl: float = 0.0, ds: float = 0.0) -> Tuple[int, int, int]:
+    """Смещает RGB по lightness (dl) и saturation (ds) в пространстве HLS."""
+    r, g, b = rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    l = _clamp(l + dl)
+    s = _clamp(s + ds)
+    r2, g2, b2 = colorsys.hls_to_rgb(h, l, s)
+    return (int(r2 * 255), int(g2 * 255), int(b2 * 255))
+
+
+def suggest_color_variants(rgb: Tuple[int, int, int], count: int = 5) -> List[Dict]:
+    """
+    Генерирует 5 вариантов цвета на основе определённого RGB.
+    
+    Варианты:
+        0 — оригинальный определённый цвет
+        1 — светлее (+15% lightness)
+        2 — темнее (−15% lightness)  
+        3 — ярче (+20% saturation)
+        4 — приглушённее (−20% saturation)
+    
+    Returns:
+        List[Dict]: [{id, name_ru, name_en, hex, rgb}, ...]
+    """
+    variants_config = [
+        (rgb, "Определённый"),
+        (_hsl_variant(rgb, dl=+0.15), "Светлее"),
+        (_hsl_variant(rgb, dl=-0.15), "Темнее"),
+        (_hsl_variant(rgb, ds=+0.20), "Ярче"),
+        (_hsl_variant(rgb, ds=-0.20), "Приглушённый"),
+    ]
+    
+    result = []
+    for i, (variant_rgb, label) in enumerate(variants_config[:count]):
+        name_ru, name_en = find_closest_color_name(variant_rgb)
+        hex_color = "#{:02x}{:02x}{:02x}".format(*variant_rgb)
+        result.append({
+            "id": name_en,
+            "name_ru": name_ru,
+            "name_en": name_en,
+            "label": label,
+            "hex": hex_color,
+            "rgb": list(variant_rgb)
+        })
+    
+    return result
+
+
+# =============================================================================
 # SINGLETON INSTANCE
 # =============================================================================
 _extractor_instance = None
@@ -243,5 +299,7 @@ def get_color_extractor():
     """Возвращает singleton экземпляр (для совместимости с API)."""
     return {
         "extract_dominant_color": extract_dominant_color,
-        "extract_color_palette": extract_color_palette
+        "extract_color_palette": extract_color_palette,
+        "suggest_color_variants": suggest_color_variants
     }
+

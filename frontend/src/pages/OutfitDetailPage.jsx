@@ -166,7 +166,7 @@ export default function OutfitDetailPage() {
     const itemsCount = useMemo(() => outfit?.items?.length || 0, [outfit])
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen page-gradient flex flex-col">
             <UniversalHeader activePage="outfits" user={user} />
 
             <main className="flex-grow container mx-auto max-w-6xl px-4 md:px-6 py-6">

@@ -53,9 +53,6 @@ class Settings(BaseSettings):
     
     # Путь для сохранения загруженных изображений одежды
     UPLOADS_PATH: str = "./uploads"
-    
-    # API ключ для OpenWeather (погода для AI-рекомендаций)
-    OPENWEATHER_API_KEY: str = "your_openweather_key"
 
     # MongoDB connection URL
     MONGO_URL: str = "mongodb://localhost:27017"

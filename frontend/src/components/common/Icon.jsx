@@ -79,7 +79,17 @@ import {
     CheckCircle,      // Check circle
     Edit2,            // Редактировать 2
     FileJson,         // JSON файл
-    FileSpreadsheet   // Excel/CSV файл
+    FileSpreadsheet,  // Excel/CSV файл
+    Cpu,              // CPU (ML Training)
+    ChevronUp,        // Chevron up
+    Crown,            // Корона (Premium)
+    Palette,          // Палитра (цвета)
+    CreditCard,       // Кредитка (стоимость)
+    BarChart2,        // Диаграмма (статистика)
+    PieChart,         // Круговая диаграмма
+    AlertCircle,      // Предупреждение (круг)
+    Star,             // Звезда (Basic план)
+    Tag               // Тег (стиль)
 } from 'lucide-react';
 
 // Кастомная иконка "Вешалка" (для логотипа)
@@ -185,7 +195,17 @@ const icons = {
     'file-spreadsheet': FileSpreadsheet,
     'file-excel': FileSpreadsheet,
     'file-csv': FileSpreadsheet,
-    'file-pdf': FileText // Используем универсальную иконку для PDF
+    'file-pdf': FileText,
+    'cpu': Cpu,
+    'chevron-up': ChevronUp,
+    'crown': Crown,
+    'palette': Palette,
+    'credit-card': CreditCard,
+    'bar-chart-2': BarChart2,
+    'pie-chart': PieChart,
+    'alert-circle': AlertCircle,
+    'star': Star,
+    'tag': Tag
 };
 
 // =============================================================================

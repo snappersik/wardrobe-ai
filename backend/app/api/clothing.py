@@ -41,10 +41,7 @@ from app.services import services
 router = APIRouter(prefix="/clothing", tags=["Clothing"])
 
 
-# Импорт ML сервисов
-from app.ml.remover import get_remover
-from app.ml.classifier import get_classifier
-from app.ml.color_extractor import extract_dominant_color
+# ML imports moved to upload_item to improve startup time
 
 # =============================================================================
 # ЭНДПОИНТ: ПРЕДОБРАБОТКА ФОТО ОДЕЖДЫ (без сохранения в БД)
@@ -81,6 +78,11 @@ async def upload_item(
     logger.info(f"📥 Начало загрузки файла: {file.filename}")
     print(f"📥 [UPLOAD] Начало загрузки файла: {file.filename}", file=sys.stderr)
     
+    # Lazy import ML modules to speed up server startup
+    from app.ml.remover import get_remover
+    from app.ml.fashion_classifier import get_fashion_classifier
+    from app.ml.color_extractor import extract_dominant_color, extract_color_palette, suggest_color_variants
+    
     # Шаг 1: Создаём директорию для загрузок
     upload_dir = "uploads"
     os.makedirs(upload_dir, exist_ok=True)
@@ -96,6 +98,10 @@ async def upload_item(
     logger.info(f"📁 Файл сохранён: {temp_path}")
     print(f"📁 [UPLOAD] Файл сохранён: {temp_path}", file=sys.stderr)
     
+    import asyncio
+    from functools import partial
+    loop = asyncio.get_running_loop()
+    
     try:
         # Шаг 4: Удаление фона через RemBG (делаем СНАЧАЛА!)
         logger.info("🖼️ Удаление фона...")
@@ -106,8 +112,17 @@ async def upload_item(
         
         # Fallback: если RemBG не готов/не доступен, используем оригинальный файл
         try:
-            remover = get_remover()
-            removed = remover.remove_background(temp_path, final_path)
+            # Получаем ремувер (может блокировать если еще инициализируется)
+            remover = await loop.run_in_executor(None, get_remover)
+            
+            # Запускаем удаление фона в пуле потоков
+            removed = await loop.run_in_executor(
+                None, 
+                remover.remove_background, 
+                temp_path, 
+                final_path
+            )
+            
             if not removed or not os.path.exists(final_path):
                 raise RuntimeError('Background removal failed or output not created')
             logger.info(f'BG removed: {final_path}')
@@ -117,50 +132,85 @@ async def upload_item(
             print(f'[UPLOAD] RemBG fallback: {bg_error}', file=sys.stderr)
             shutil.copyfile(temp_path, final_path)
         
-        # Шаг 5: Распознавание через Fashion-MNIST классификатор (ПОСЛЕ удаления фона)
-        # Теперь классификатор получает PNG с прозрачным фоном - гораздо лучше!
+        # Шаг 5: Распознавание через MultiHeadResNet50 (категория + стиль)
         logger.info("🤖 Запуск классификатора...")
         print("🤖 [UPLOAD] Запуск классификатора...", file=sys.stderr)
         
         try:
-            classifier = get_classifier()
-            prediction = classifier.predict(final_path)  # PNG without background
+            classifier = await loop.run_in_executor(None, get_fashion_classifier)
+            prediction = await loop.run_in_executor(None, classifier.predict, final_path)
         except Exception as clf_error:
             logger.warning(f'Classifier fallback: {clf_error}')
             print(f'[UPLOAD] Classifier fallback: {clf_error}', file=sys.stderr)
-            prediction = {'id': 'unknown', 'name': 'Unknown', 'confidence': 0.0}
+            prediction = {'id': 'tee', 'name': 'Футболка', 'confidence': 0.0,
+                          'style': 'casual', 'style_confidence': 0.0,
+                          'seasons': ['spring', 'summer', 'fall'],
+                          'temp_min': 15, 'temp_max': 35, 'waterproof_level': 0}
         
-        category = prediction.get("id", "unknown")
+        category = prediction.get("id", "tee")
         confidence = prediction.get("confidence", 0.0)
         
-        logger.info(f"🎯 Классификация: {prediction['name']} ({category}) - {confidence*100:.1f}%")
-        print(f"🎯 [UPLOAD] Классификация: {prediction['name']} ({category}) - {confidence*100:.1f}%", file=sys.stderr)
+        logger.info(f"🎯 Классификация: {prediction.get('name')} ({category}) - {confidence*100:.1f}%")
+        print(f"🎯 [UPLOAD] Классификация: {prediction.get('name')} ({category}) - {confidence*100:.1f}%", file=sys.stderr)
         
-        # Шаг 6: Извлечение доминирующего цвета через K-means
+        # Шаг 6: Извлечение цвета и палитры через K-means
         logger.info("🎨 Извлечение цвета...")
         print("🎨 [UPLOAD] Извлечение цвета...", file=sys.stderr)
         
         try:
-            color_info = extract_dominant_color(final_path)
+            color_info = await loop.run_in_executor(None, extract_dominant_color, final_path)
         except Exception as color_error:
             logger.warning(f'Color extraction fallback: {color_error}')
             print(f'[UPLOAD] Color fallback: {color_error}', file=sys.stderr)
             color_info = {'name_en': 'gray', 'hex': '#808080'}
-        # Используем name_en (ID цвета) для фронтенда
+        
         color_id = color_info.get("name_en", "gray")
         color_hex = color_info.get("hex", "#808080")
         
-        logger.info(f"🎨 Цвет: {color_id} ({color_hex})")
+        # Извлекаем палитру цветов
+        try:
+            palette = await loop.run_in_executor(
+                None, 
+                partial(extract_color_palette, k=4), 
+                final_path
+            )
+            palette_hexes = [c.get('hex', '#808080') for c in palette]
+            is_multicolor = len(set(c.get('name_en') for c in palette)) >= 3
+        except Exception:
+            palette_hexes = [color_hex]
+            is_multicolor = False
+        
+        logger.info(f"🎨 Цвет: {color_id} ({color_hex}), палитра: {palette_hexes}")
         print(f"🎨 [UPLOAD] Цвет: {color_id} ({color_hex})", file=sys.stderr)
+        
+        # Шаг 7: Генерация 5 вариантов цвета для выбора пользователем
+        try:
+            color_rgb = tuple(color_info.get("rgb", [128, 128, 128]))
+            color_suggestions = await loop.run_in_executor(
+                None,
+                partial(suggest_color_variants, count=5),
+                color_rgb
+            )
+        except Exception:
+            color_suggestions = [{"id": color_id, "name_ru": color_id, "name_en": color_id, "label": "Определённый", "hex": color_hex, "rgb": [128, 128, 128]}]
         
         result = {
             "file_id": file_id,
             "filename": file.filename,
             "image_path": final_path,
             "category": category,
-            "color": color_id,  # ID цвета (white, black, etc.)
+            "color": color_id,
             "confidence": confidence,
-            "pending": True  # Флаг что вещь ещё не сохранена
+            "style": prediction.get("style", "casual"),
+            "style_confidence": prediction.get("style_confidence", 0.0),
+            "seasons": prediction.get("seasons", []),
+            "temp_min": prediction.get("temp_min"),
+            "temp_max": prediction.get("temp_max"),
+            "waterproof_level": prediction.get("waterproof_level", 0),
+            "is_multicolor": is_multicolor,
+            "color_palette": palette_hexes,
+            "color_suggestions": color_suggestions,
+            "pending": True
         }
         
         logger.info(f"✅ Загрузка завершена: {result}")
@@ -169,7 +219,7 @@ async def upload_item(
         # Возвращаем данные для модального окна редактирования
         # НЕ сохраняем в БД - это произойдёт при подтверждении
         return result
-
+    
     except Exception as e:
         logger.error(f"❌ Ошибка загрузки: {e}")
         print(f"❌ [UPLOAD] Ошибка: {e}", file=sys.stderr)
@@ -206,11 +256,18 @@ async def confirm_item(
     new_item = models.ClothingItem(
         owner_id=current_user.id,
         filename=item_data.name or item_data.filename,
+        name=item_data.name,
         image_path=item_data.image_path,
         category=item_data.category,
         color=json.dumps(item_data.color) if isinstance(item_data.color, list) else item_data.color,
         season=json.dumps(item_data.season) if isinstance(item_data.season, list) else item_data.season,
-        style=json.dumps(item_data.style) if isinstance(item_data.style, list) else item_data.style
+        style=json.dumps(item_data.style) if isinstance(item_data.style, list) else item_data.style,
+        temp_min=item_data.temp_min,
+        temp_max=item_data.temp_max,
+        waterproof_level=item_data.waterproof_level or 0,
+        is_multicolor=item_data.is_multicolor or False,
+        color_palette=json.dumps(item_data.color_palette) if item_data.color_palette else None,
+        is_favorite=item_data.is_favorite or False,
     )
     
     db.add(new_item)
@@ -328,7 +385,8 @@ async def update_item(
     
     # Обновляем поля если они переданы
     if item_data.name is not None:
-        item.filename = item_data.name  # Используем filename для хранения названия
+        item.filename = item_data.name
+        item.name = item_data.name
     if item_data.category is not None:
         item.category = item_data.category
     
@@ -353,6 +411,20 @@ async def update_item(
             item.style = json.dumps(item_data.style)
         else:
             item.style = item_data.style
+    
+    # Новые поля Phase 1
+    if item_data.temp_min is not None:
+        item.temp_min = item_data.temp_min
+    if item_data.temp_max is not None:
+        item.temp_max = item_data.temp_max
+    if item_data.waterproof_level is not None:
+        item.waterproof_level = item_data.waterproof_level
+    if item_data.is_multicolor is not None:
+        item.is_multicolor = item_data.is_multicolor
+    if item_data.color_palette is not None:
+        item.color_palette = json.dumps(item_data.color_palette)
+    if item_data.is_favorite is not None:
+        item.is_favorite = item_data.is_favorite
     
     await db.commit()
     await db.refresh(item)

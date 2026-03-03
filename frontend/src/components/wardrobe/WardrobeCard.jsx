@@ -27,6 +27,7 @@ import clothingCategories from '../../data/clothing-categories.json'
 export default function WardrobeCard({ item, onDelete, onEdit }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [imageLoaded, setImageLoaded] = useState(false)
 
     // Получаем русское название категории
     const getCategoryName = (categoryId) => {
@@ -57,59 +58,70 @@ export default function WardrobeCard({ item, onDelete, onEdit }) {
     return (
         <>
             {/* Контейнер карточки с hover-эффектами */}
-            <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 card-hover group relative">
+            <div className="bg-white rounded-2xl p-3 shadow-card border border-gray-100/80 card-hover group relative overflow-hidden">
+
+                {/* Subtle gradient overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl" />
 
                 {/* ИЗОБРАЖЕНИЕ ВЕЩИ */}
                 <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-gray-50">
+                    {/* Skeleton placeholder while image loads */}
+                    {!imageLoaded && (
+                        <div className="absolute inset-0 skeleton" />
+                    )}
                     <img
                         src={imageUrl}
                         alt={itemName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.src = 'https://via.placeholder.com/300x400?text=No+Image' }}
+                        className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                        onLoad={() => setImageLoaded(true)}
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/300x400?text=No+Image'; setImageLoaded(true) }}
                     />
 
                     {/* КНОПКИ ДЕЙСТВИЙ (появляются при наведении) */}
-                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
                         {/* Кнопка редактирования */}
                         <button
                             onClick={(e) => { e.stopPropagation(); onEdit?.(item); }}
-                            className="p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-white text-gray-700"
+                            className="p-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-sm hover:bg-white hover:shadow-md text-gray-600 hover:text-primary transition-all duration-200"
                         >
-                            <Icon name="pencil" size={16} />
+                            <Icon name="pencil" size={14} />
                         </button>
 
                         {/* Кнопка удаления */}
                         <button
                             onClick={handleDeleteClick}
-                            className="p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-white text-red-500"
+                            className="p-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-sm hover:bg-white hover:shadow-md text-gray-600 hover:text-red-500 transition-all duration-200"
                         >
-                            <Icon name="trash" size={16} />
+                            <Icon name="trash" size={14} />
                         </button>
                     </div>
+
+                    {/* Gradient overlay at bottom of image */}
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
                 {/* ИНФОРМАЦИЯ О ВЕЩИ */}
-                <div>
+                <div className="relative">
                     {/* Название вещи (обрезается если слишком длинное) */}
-                    <h3 className="font-medium text-gray-900 truncate text-sm md:text-base">{itemName}</h3>
+                    <h3 className="font-semibold text-gray-900 truncate text-sm md:text-base">{itemName}</h3>
                     {/* Категория вещи */}
-                    <p className="text-xs text-gray-500 mt-1">{getCategoryName(item.category)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{getCategoryName(item.category)}</p>
                 </div>
             </div>
 
             {/* МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-scale-in">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-scale-in">
                         {/* Иконка предупреждения */}
-                        <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-2xl flex items-center justify-center">
                             <Icon name="trash" size={32} className="text-red-500" />
                         </div>
 
                         <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
                             Удалить вещь?
                         </h3>
-                        <p className="text-gray-500 text-center mb-6">
+                        <p className="text-gray-500 text-center mb-6 text-sm">
                             Вы уверены, что хотите удалить "{itemName}"? Это действие нельзя отменить.
                         </p>
 
@@ -117,14 +129,14 @@ export default function WardrobeCard({ item, onDelete, onEdit }) {
                             <button
                                 onClick={() => setShowDeleteModal(false)}
                                 disabled={isDeleting}
-                                className="flex-1 btn btn-secondary py-3"
+                                className="flex-1 btn btn-secondary py-3 rounded-xl"
                             >
                                 Отмена
                             </button>
                             <button
                                 onClick={handleConfirmDelete}
                                 disabled={isDeleting}
-                                className="flex-1 btn bg-red-500 hover:bg-red-600 text-white py-3 disabled:opacity-50"
+                                className="flex-1 btn bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl disabled:opacity-50 shadow-lg shadow-red-200/50"
                             >
                                 {isDeleting ? (
                                     <div className="flex items-center justify-center gap-2">

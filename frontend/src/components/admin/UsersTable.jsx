@@ -65,15 +65,12 @@ const UsersTable = ({ users, onRoleChange, onNotify }) => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <select
-                                        value={u.role}
-                                        onChange={(e) => onRoleChange && onRoleChange(u.id, e.target.value)}
-                                        className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 border-none focus:ring-2 focus:ring-primary cursor-pointer"
-                                    >
-                                        <option value="user">User</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="premium">Premium</option>
-                                    </select>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                            u.role === 'premium' ? 'bg-amber-100 text-amber-700' :
+                                                'bg-gray-100 text-gray-600'
+                                        }`}>
+                                        {u.role === 'admin' ? 'Админ' : u.role === 'premium' ? 'Премиум' : 'Пользователь'}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 text-gray-600">{u.city || '-'}</td>
                                 <td className="px-6 py-4 text-gray-600">

@@ -1,69 +1,42 @@
 // =============================================================================
-// СЕТКА ГАРДЕРОБА (WardrobeGrid.jsx)
-// =============================================================================
-// Компонент для отображения вещей в виде адаптивной сетки.
-// Обрабатывает три состояния: загрузка, пустое, с данными.
+// СЕТКА ГАРДЕРОБА (WardrobeGrid.jsx) — with shimmer loading
 // =============================================================================
 
-// Карточка вещи
 import WardrobeCard from './WardrobeCard'
-
-// Пустое состояние (когда вещей нет)
 import EmptyState from './EmptyState'
 
-// =============================================================================
-// КОМПОНЕНТ СЕТКИ
-// =============================================================================
-/**
- * Адаптивная сетка карточек вещей.
- * 
- * @param {Array} items - Массив вещей для отображения
- * @param {boolean} loading - Флаг загрузки (показывает скелетон)
- * @param {function} onDelete - Callback для удаления вещи
- * @param {function} onEdit - Callback для редактирования вещи
- * @param {function} onAddClick - Callback для добавления вещи (передаётся в EmptyState)
- */
 export default function WardrobeGrid({ items, loading, onDelete, onEdit, onAddClick }) {
-    // ==========================================================================
-    // СОСТОЯНИЕ: ЗАГРУЗКА
-    // ==========================================================================
-    // Показываем скелетон (placeholder карточки) пока данные загружаются
+    // СОСТОЯНИЕ: ЗАГРУЗКА — shimmer skeletons
     if (loading) {
         return (
-            // Адаптивная сетка: 2 колонки (mobile) -> 3 (md) -> 4 (lg)
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {/* 8 скелетонов для загрузки */}
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                    <div key={n} className="bg-white rounded-2xl p-3 h-64 animate-pulse">
-                        {/* Скелетон изображения */}
-                        <div className="w-full h-40 bg-gray-200 rounded-xl mb-3"></div>
-                        {/* Скелетон названия */}
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        {/* Скелетон категории */}
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div key={n} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100/50">
+                        <div className="w-full aspect-[3/4] skeleton mb-3"></div>
+                        <div className="h-4 skeleton w-3/4 mb-2"></div>
+                        <div className="h-3 skeleton w-1/2"></div>
                     </div>
                 ))}
             </div>
         )
     }
 
-    // ==========================================================================
-    // СОСТОЯНИЕ: ПУСТОЙ ГАРДЕРОБ
-    // ==========================================================================
-    // Если вещей нет - показываем пустое состояние с призывом добавить
+    // ПУСТОЙ ГАРДЕРОБ
     if (items.length === 0) {
         return <EmptyState onAddClick={onAddClick} />
     }
 
-    // ==========================================================================
-    // СОСТОЯНИЕ: ЕСТЬ ВЕЩИ
-    // ==========================================================================
-    // Отображаем сетку карточек
+    // ЕСТЬ ВЕЩИ — staggered fade-up animation
     return (
-        // pb-20 на мобильных для учёта мобильной навигации
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-20 md:pb-0">
-            {items.map(item => (
-                <WardrobeCard key={item.id} item={item} onDelete={onDelete} onEdit={onEdit} />
+            {items.map((item, index) => (
+                <div
+                    key={item.id}
+                    className="animate-fade-up"
+                    style={{ animationDelay: `${Math.min(index * 0.04, 0.3)}s` }}
+                >
+                    <WardrobeCard item={item} onDelete={onDelete} onEdit={onEdit} />
+                </div>
             ))}
         </div>
     )

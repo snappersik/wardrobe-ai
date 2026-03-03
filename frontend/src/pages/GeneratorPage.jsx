@@ -4,6 +4,7 @@ import MobileNav from '../components/layout/MobileNav'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import Icon from '../components/common/Icon'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 /**
  * GeneratorPage - AI Генератор образов с Tinder-style свайп интерфейсом
@@ -36,12 +37,26 @@ const GeneratorPage = () => {
     const [generating, setGenerating] = useState(false)
     const [swipeDirection, setSwipeDirection] = useState(null)
 
+    // Тарифный план
+    const [planInfo, setPlanInfo] = useState(null)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
     const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
 
-    // Загрузка погоды при монтировании
+    // Загрузка погоды и плана при монтировании
     useEffect(() => {
         fetchWeather()
+        fetchPlanInfo()
     }, [])
+
+    const fetchPlanInfo = async () => {
+        try {
+            const { data } = await api.get('/stats/plan')
+            setPlanInfo(data)
+        } catch (error) {
+            console.log('Plan info not available')
+        }
+    }
 
     const goCarouselNext = useCallback(() => {
         setCarouselIndex(prev => {
@@ -131,15 +146,24 @@ const GeneratorPage = () => {
     const handleGenerate = async () => {
         setGenerating(true)
         try {
-            const { data } = await api.post(`/outfits/generate?occasion=${occasion}&weather_category=${weatherCategory}&count=10`)
+            // Используем count из плана
+            const maxCount = planInfo?.max_outfits || 5
+            const { data } = await api.post(`/outfits/generate?occasion=${occasion}&weather_category=${weatherCategory}&count=${maxCount}`)
             setOutfits(data)
             setCurrentIndex(0)
             setCarouselIndex(0)
             setStats({ saved: 0, favorited: 0, skipped: 0 })
             setStage('swipe')
+            // Обновляем инфо о плане (остаток генераций)
+            fetchPlanInfo()
         } catch (error) {
-            console.error('Generation failed:', error)
-            alert(error.response?.data?.detail || 'Ошибка генерации')
+            if (error.response?.status === 429) {
+                // Лимит исчерпан — показываем модалку улучшения
+                setShowUpgradeModal(true)
+            } else {
+                console.error('Generation failed:', error)
+                alert(error.response?.data?.detail || 'Ошибка генерации')
+            }
         } finally {
             setGenerating(false)
         }
@@ -226,7 +250,7 @@ const GeneratorPage = () => {
     ]
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen page-gradient flex flex-col">
             <UniversalHeader activePage="generator" user={user} />
 
             <main className="flex-grow container mx-auto max-w-2xl lg:max-w-5xl px-4 py-6">
@@ -298,6 +322,27 @@ const GeneratorPage = () => {
                             </div>
                         </div>
 
+                        {/* Остаток генераций (Free) */}
+                        {planInfo && planInfo.daily_limit && (
+                            <div className="flex items-center justify-center gap-2 text-sm">
+                                <div className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 ${planInfo.remaining_today <= 3
+                                        ? 'bg-red-50 text-red-600'
+                                        : 'bg-blue-50 text-blue-600'
+                                    }`}>
+                                    <Icon name="zap" size={14} />
+                                    <span className="font-medium">
+                                        {planInfo.remaining_today} / {planInfo.daily_limit} генераций сегодня
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setShowUpgradeModal(true)}
+                                    className="text-xs text-purple-500 hover:text-purple-700 font-medium"
+                                >
+                                    Улучшить
+                                </button>
+                            </div>
+                        )}
+
                         {/* Generate Button */}
                         <button
                             onClick={handleGenerate}
@@ -312,7 +357,7 @@ const GeneratorPage = () => {
                             ) : (
                                 <span className="flex items-center justify-center gap-2">
                                     <Icon name="sparkles" size={20} />
-                                    Создать образы
+                                    Создать образы {planInfo ? `(${planInfo.max_outfits} шт)` : ''}
                                 </span>
                             )}
                         </button>
@@ -605,6 +650,14 @@ const GeneratorPage = () => {
             </main>
 
             <MobileNav activePage="generator" />
+
+            {/* Модалка улучшения плана */}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentPlan={planInfo?.current_plan || 'free'}
+                reason="limit_reached"
+            />
         </div>
     )
 }

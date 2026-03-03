@@ -229,7 +229,7 @@ export default function CalendarPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen page-gradient flex flex-col">
             <UniversalHeader activePage="calendar" user={user} />
 
             <main className="flex-grow container mx-auto max-w-5xl px-4 md:px-6 py-6">

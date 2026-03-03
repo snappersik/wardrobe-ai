@@ -1,45 +1,42 @@
 // =============================================================================
-// ФИЛЬТР ПО КАТЕГОРИЯМ (CategoryFilter.jsx)
+// ФИЛЬТР ПО КАТЕГОРИЯМ — КНОПКИ-PILLS (CategoryFilter.jsx)
 // =============================================================================
-// Компонент для фильтрации вещей по категориям одежды.
-// Отображается как горизонтальный список "pill" кнопок.
-// На мобильных устройствах поддерживает горизонтальный скролл.
+// Простые кнопки-pills по группам одежды (как в OutfitsPage),
+// без выпадающих списков. Детальные подкатегории — в фильтрах.
 // =============================================================================
+
+import Icon from '../common/Icon'
+
+// Группы категорий с иконками
+const CATEGORY_GROUPS = [
+    { id: 'Все', label: 'Все', icon: 'grid' },
+    { id: 'Верх', label: 'Верх', icon: 'shirt' },
+    { id: 'Свитеры и кардиганы', label: 'Свитеры', icon: 'layers' },
+    { id: 'Верхняя одежда', label: 'Верхняя', icon: 'jacket' },
+    { id: 'Низ', label: 'Низ', icon: 'trousers' },
+    { id: 'Платья и комбинезоны', label: 'Платья', icon: 'dress' },
+    { id: 'Обувь', label: 'Обувь', icon: 'footprints' },
+]
 
 /**
- * Фильтр категорий одежды.
+ * Фильтр категорий — горизонтальный ряд pills.
  * 
- * @param {string} activeCategory - Текущая активная категория
- * @param {function} setActiveCategory - Функция для изменения категории
+ * @param {string} activeCategory - Активная группа (или 'Все')
+ * @param {function} setActiveCategory - Функция смены группы
  */
 export default function CategoryFilter({ activeCategory, setActiveCategory }) {
-    // Список доступных категорий одежды
-    const categories = [
-        'Все',              // Показать все вещи (без фильтра)
-        'Верх',             // Футболки, рубашки, свитера
-        'Низ',              // Штаны, шорты, юбки
-        'Обувь',            // Кроссовки, туфли, ботинки
-        'Верхняя одежда',   // Куртки, пальто, пуховики
-        'Аксессуары',       // Сумки, ремни, часы
-        'Платья'            // Платья и комбинезоны
-    ]
-
     return (
-        // Контейнер с горизонтальным скроллом на мобильных
-        // scrollbar-hide - скрывает скролл-бар для чистого вида
-        <div className="mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+        <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
             <div className="flex gap-2">
-                {/* Рендерим кнопку для каждой категории */}
-                {categories.map(cat => (
+                {CATEGORY_GROUPS.map(cat => (
                     <button
-                        key={cat}
-                        onClick={() => setActiveCategory(cat)}
-                        // pill - базовые стили кнопки-пилюли
-                        // pill-active - стили активной кнопки (выбранная категория)
-                        // pill-inactive - стили неактивной кнопки
-                        className={`pill ${activeCategory === cat ? 'pill-active' : 'pill-inactive'}`}
+                        key={cat.id}
+                        onClick={() => setActiveCategory(cat.id)}
+                        className={`pill flex items-center gap-1.5 whitespace-nowrap ${activeCategory === cat.id ? 'pill-active' : 'pill-inactive'
+                            }`}
                     >
-                        {cat}
+                        <Icon name={cat.icon} size={15} />
+                        {cat.label}
                     </button>
                 ))}
             </div>

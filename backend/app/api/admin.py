@@ -242,31 +242,6 @@ async def get_users(
     result = await db.execute(select(models.User).offset(skip).limit(limit))
     return result.scalars().all()
 
-@router.patch("/users/{user_id}/role")
-async def update_user_role(
-    user_id: int,
-    role: str = Query(..., regex="^(user|admin|premium)$"),
-    db: AsyncSession = Depends(get_db),
-    admin: models.User = Depends(get_current_admin)
-):
-    user = await db.get(models.User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    user.role = role
-    await db.commit()
-    
-    # Логируем действие
-    await mongo_db.audit_logs.insert_one({
-        "user_id": admin.id,
-        "username": admin.username,
-        "action": "change_role",
-        "details": f"Changed user {user.username} role to {role}",
-        "timestamp": datetime.utcnow()
-    })
-    
-    return {"message": "Role updated"}
-
 # =============================================================================
 # ЛОГИ (MONGODB)
 # =============================================================================
@@ -298,3 +273,160 @@ async def export_logs(
             log["timestamp"] = log["timestamp"].isoformat()
             
     return logs
+
+
+# =============================================================================
+# ML TRAINING
+# =============================================================================
+from app.models.ml import MLTrainingJob
+from app.ml.ml_logger import log_info, log_ml_event
+
+@router.post("/ml/train")
+async def start_training(
+    epochs: int = Query(15, ge=1, le=100),
+    batch_size: int = Query(32, ge=4, le=128),
+    model_type: str = Query("resnet50"),
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Создаёт новую задачу обучения ML-модели."""
+    # Проверяем, нет ли уже активного обучения
+    result = await db.execute(
+        select(MLTrainingJob).where(MLTrainingJob.status.in_(["PENDING", "TRAINING"]))
+    )
+    active = result.scalars().first()
+    if active:
+        raise HTTPException(status_code=409, detail="Обучение уже выполняется")
+    
+    job = MLTrainingJob(
+        model_type=model_type,
+        epochs=epochs,
+        batch_size=batch_size,
+        status="PENDING",
+        progress=0.0,
+        current_epoch=0,
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+    
+    await log_ml_event(
+        mongo_db, "ml_training_start",
+        f"Запущено обучение {model_type}, epochs={epochs}, batch_size={batch_size}",
+        job_id=str(job.id),
+        user_id=admin.id, username=admin.username
+    )
+    
+    return {
+        "job_id": str(job.id),
+        "status": job.status,
+        "model_type": job.model_type,
+        "epochs": job.epochs,
+        "batch_size": job.batch_size,
+    }
+
+
+@router.get("/ml/status/{job_id}")
+async def get_training_status(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Возвращает текущий статус и прогресс обучения."""
+    from uuid import UUID as PyUUID
+    try:
+        uid = PyUUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job_id")
+    
+    job = await db.get(MLTrainingJob, uid)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Подтягиваем последние логи для этого job из MongoDB
+    cursor = mongo_db.audit_logs.find(
+        {"job_id": job_id, "level": "ml"}
+    ).sort("timestamp", -1).limit(50)
+    logs = await cursor.to_list(length=50)
+    for l in logs:
+        l["_id"] = str(l["_id"])
+    
+    return {
+        "job_id": str(job.id),
+        "status": job.status,
+        "model_type": job.model_type,
+        "epochs": job.epochs,
+        "batch_size": job.batch_size,
+        "progress": job.progress,
+        "current_epoch": job.current_epoch,
+        "metrics": job.metrics,
+        "error_message": job.error_message,
+        "start_time": job.start_time.isoformat() if job.start_time else None,
+        "end_time": job.end_time.isoformat() if job.end_time else None,
+        "dataset_info": job.dataset_info,
+        "logs": list(reversed(logs)),
+    }
+
+
+@router.get("/ml/history")
+async def get_training_history(
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Список всех задач обучения."""
+    result = await db.execute(
+        select(MLTrainingJob).order_by(desc(MLTrainingJob.start_time)).limit(limit)
+    )
+    jobs = result.scalars().all()
+    
+    return [
+        {
+            "job_id": str(j.id),
+            "status": j.status,
+            "model_type": j.model_type,
+            "epochs": j.epochs,
+            "batch_size": j.batch_size,
+            "progress": j.progress,
+            "current_epoch": j.current_epoch,
+            "metrics": j.metrics,
+            "start_time": j.start_time.isoformat() if j.start_time else None,
+            "end_time": j.end_time.isoformat() if j.end_time else None,
+            "error_message": j.error_message,
+        }
+        for j in jobs
+    ]
+
+
+@router.post("/ml/cancel/{job_id}")
+async def cancel_training(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin)
+):
+    """Отменяет обучение."""
+    from uuid import UUID as PyUUID
+    try:
+        uid = PyUUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job_id")
+    
+    job = await db.get(MLTrainingJob, uid)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job.status not in ("PENDING", "TRAINING"):
+        raise HTTPException(status_code=400, detail="Обучение уже завершено")
+    
+    job.status = "CANCELLED"
+    job.end_time = datetime.utcnow()
+    await db.commit()
+    
+    await log_ml_event(
+        mongo_db, "ml_training_cancelled",
+        f"Обучение {job_id} отменено администратором",
+        job_id=job_id,
+        user_id=admin.id, username=admin.username
+    )
+    
+    return {"message": "Обучение отменено", "job_id": job_id}

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import UniversalHeader from '../components/layout/UniversalHeader'
 import MobileNav from '../components/layout/MobileNav'
 import Toast from '../components/common/Toast'
 import { useAuth } from '../context/AuthContext'
 import Icon from '../components/common/Icon'
+import UpgradeModal from '../components/common/UpgradeModal'
 import cities from '../data/russian-cities.json'
 import api from '../api/axios'
 
@@ -16,8 +17,10 @@ export default function ProfilePage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [isDraggingAvatar, setIsDraggingAvatar] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const fileInputRef = useRef(null)
     const mediaBaseUrl = api.defaults.baseURL.replace('/api', '')
+    const plan = user?.subscription_plan || 'free'
 
     const [formData, setFormData] = useState({
         username: '',
@@ -157,7 +160,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen page-gradient flex flex-col">
             <UniversalHeader activePage="profile" user={user} />
 
             <main className="flex-grow container mx-auto max-w-4xl px-4 md:px-6 py-6">
@@ -221,9 +224,31 @@ export default function ProfilePage() {
                                             Администратор
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-100">
-                                            Free Plan
+                                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border ${plan === 'premium' ? 'border-amber-200 text-amber-700' :
+                                            plan === 'basic' ? 'border-blue-200 text-blue-700' :
+                                                'border-gray-100 text-gray-500'
+                                            }`}>
+                                            <Icon name={plan === 'premium' ? 'crown' : plan === 'basic' ? 'star' : 'user'} size={14} />
+                                            {plan === 'premium' ? 'Premium' : plan === 'basic' ? 'Basic' : 'Free'}
                                         </span>
+                                    )}
+                                    {plan === 'premium' && (
+                                        <Link
+                                            to="/stats"
+                                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-amber-700 hover:from-amber-100 hover:to-orange-100 transition-colors"
+                                        >
+                                            <Icon name="bar-chart-2" size={14} />
+                                            Статистика
+                                        </Link>
+                                    )}
+                                    {plan === 'free' && (
+                                        <button
+                                            onClick={() => setShowUpgradeModal(true)}
+                                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 text-purple-600 hover:from-purple-100 hover:to-pink-100 transition-colors text-sm"
+                                        >
+                                            <Icon name="sparkles" size={14} />
+                                            Улучшить
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -320,7 +345,7 @@ export default function ProfilePage() {
                     </form>
                 </div>
 
-                
+
                 {isAdmin && (
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
                         <div className="flex items-center gap-3 mb-2">
@@ -366,12 +391,12 @@ export default function ProfilePage() {
                         </button>
                         {!isAdmin && (
 
-                        <button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            className="btn bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 border-none"
-                        >
-                            Удалить аккаунт
-                        </button>
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="btn bg-red-50 text-red-600 hover:bg-red-100 px-6 py-2 border-none"
+                            >
+                                Удалить аккаунт
+                            </button>
                         )}
                     </div>
                 </div>
@@ -408,6 +433,12 @@ export default function ProfilePage() {
 
             <MobileNav activePage="profile" />
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentPlan={plan}
+                reason="upgrade"
+            />
         </div>
     )
 }

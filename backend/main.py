@@ -145,12 +145,38 @@ async def startup_event():
     
     # Создаём админа
     await create_admin_user()
+    
+    # Запускаем фоновую загрузку ML моделей
+    import asyncio
+    asyncio.create_task(load_ml_models())
 
-# =============================================================================
-# ЗАПУСК СЕРВЕРА ДЛЯ РАЗРАБОТКИ
-# =============================================================================
-# Этот блок выполняется при запуске: python main.py
-# В продакшене используйте: uvicorn main:app --host 0.0.0.0 --port 8000
+async def load_ml_models():
+    """
+    Фоновая загрузка тяжелых ML моделей.
+    Позволяет серверу запуститься быстро, а модели подгрузить асинхронно.
+    """
+    loop = asyncio.get_running_loop()
+    # Запускаем ВСЮ загрузку (включая импорты) в отдельном потоке
+    loop.run_in_executor(None, _load_models_sync)
+
+def _load_models_sync():
+    """Синхронная функция для загрузки моделей и импортов."""
+    print("⏳ [ML] Starting background model loading...", flush=True)
+    try:
+        # Import here to avoid top-level blocking
+        from app.ml.fashion_classifier import get_fashion_classifier
+        from app.ml.remover import get_remover
+        
+        # Trigger model loading
+        get_fashion_classifier()
+        print("✅ [ML] Fashion classifier loaded!", flush=True)
+        
+        get_remover()
+        print("✅ [ML] Background remover loaded!", flush=True)
+        
+    except Exception as e:
+        print(f"❌ [ML] Error loading models: {e}", flush=True)
+
 if __name__ == "__main__":
     import uvicorn
     # reload=True - автоматическая перезагрузка при изменении кода

@@ -14,9 +14,12 @@ services:
       DEBUG: "True"
       UPLOADS_PATH: ./uploads
       ML_SHARED_PATH: /app/ml_shared
+      U2NET_HOME: /root/.u2net
     volumes:
+      - ./backend:/app
       - ./backend/uploads:/app/uploads
       - ml_shared_data:/app/ml_shared
+      - ./u2net.onnx:/root/.u2net/u2net.onnx
     depends_on:
       db:
         condition: service_healthy
@@ -36,9 +39,12 @@ services:
       DEBUG: "True"
       UPLOADS_PATH: ./uploads
       ML_SHARED_PATH: /app/ml_shared
+      U2NET_HOME: /root/.u2net
     volumes:
+      - ./backend:/app
       - ./backend/uploads:/app/uploads
       - ml_shared_data:/app/ml_shared
+      - ./u2net.onnx:/root/.u2net/u2net.onnx
     depends_on:
       db:
         condition: service_healthy

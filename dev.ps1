@@ -33,7 +33,7 @@ $RootPath = Get-Location
 # 2. Запуск Backend
 Start-NewWindow -Title "Backend (FastAPI)" `
     -Path "$RootPath\backend" `
-    -Command ".\venv\Scripts\activate; python main.py"
+    -Command ".\venv\Scripts\activate; uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
 # 3. Запуск ML Worker
 Start-NewWindow -Title "ML Worker" `

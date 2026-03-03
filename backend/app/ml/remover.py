@@ -40,11 +40,16 @@ class BackgroundRemover:
         """
         return remove(image_bytes, session=self.session)
 
+import threading
+
 # Глобальный экземпляр для переиспользования сессии
 remover = None
+_remover_lock = threading.Lock()
 
 def get_remover():
     global remover
     if remover is None:
-        remover = BackgroundRemover()
+        with _remover_lock:
+            if remover is None:
+                remover = BackgroundRemover()
     return remover

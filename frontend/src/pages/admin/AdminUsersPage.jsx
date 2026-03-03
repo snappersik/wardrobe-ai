@@ -32,19 +32,7 @@ const AdminUsersPage = () => {
         }
     }
 
-    const handleRoleChange = async (userId, newRole) => {
-        try {
-            await api.patch(`/admin/users/${userId}/role`, null, {
-                params: { role: newRole }
-            })
-            setUsers(prev => prev.map(u =>
-                u.id === userId ? { ...u, role: newRole } : u
-            ))
-            setToast({ message: 'Роль успешно обновлена', type: 'success' })
-        } catch (error) {
-            setToast({ message: 'Ошибка обновления роли', type: 'error' })
-        }
-    }
+
 
     const cityOptions = useMemo(() => {
         const unique = new Set(users.map(u => u.city).filter(Boolean))
@@ -139,19 +127,7 @@ const AdminUsersPage = () => {
                         ))}
                     </select>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Icon name="users" size={16} className="text-gray-400" />
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
-                        className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm text-gray-700"
-                    >
-                        <option value="all">Все роли</option>
-                        <option value="user">User</option>
-                        <option value="premium">Premium</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
+
                 <div className="flex items-center gap-2">
                     <Icon name="calendar" size={16} className="text-gray-400" />
                     <input
@@ -190,7 +166,6 @@ const AdminUsersPage = () => {
 
             <UsersTable
                 users={pagedUsers}
-                onRoleChange={handleRoleChange}
                 onNotify={(message, type = 'success') => setToast({ message, type })}
             />
 

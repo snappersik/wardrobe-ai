@@ -167,23 +167,14 @@ export default function WardrobePage() {
     // ==========================================================================
     // Фильтруем вещи по категории и поисковому запросу
     const filteredItems = items.filter(item => {
-        // Проверка совпадения категории
-        const getCategoryType = (categoryId) => {
+        // Проверка совпадения категории (по group из JSON)
+        const getCategoryGroup = (categoryId) => {
             const cat = clothingCategories.find(c => c.id === categoryId)
-            return cat?.type || 'other'
+            return cat?.group || 'Другое'
         }
 
-        const categoryTypeMap = {
-            'Верх': ['top'],
-            'Низ': ['bottom'],
-            'Обувь': ['shoes'],
-            'Верхняя одежда': ['top'],
-            'Аксессуары': ['accessory'],
-            'Платья': ['full']
-        }
-
-        const type = getCategoryType(item.category)
-        const matchesCategory = activeCategory === 'Все' || (categoryTypeMap[activeCategory] || []).includes(type)
+        const group = getCategoryGroup(item.category)
+        const matchesCategory = activeCategory === 'Все' || group === activeCategory
 
         // Проверка совпадения поискового запроса (по названию, описанию или имени файла)
         const itemName = item.name || item.filename || ''
@@ -264,7 +255,7 @@ export default function WardrobePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen page-gradient flex flex-col">
             {/* Универсальная шапка (навигация) */}
             <UniversalHeader activePage="wardrobe" user={user} />
 
@@ -395,28 +386,55 @@ export default function WardrobePage() {
                             </button>
                         </div>
 
-                        {/* Категории */}
+                        {/* Категории — группированный аккордеон */}
                         <div className="mb-6">
                             <p className="text-sm font-medium text-gray-700 mb-2">Категории</p>
-                            <div className="flex flex-wrap gap-2">
-                                {clothingCategories.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setFilters(prev => {
-                                            const exists = prev.categories.includes(cat.id)
-                                            return {
-                                                ...prev,
-                                                categories: exists ? prev.categories.filter(c => c !== cat.id) : [...prev.categories, cat.id]
-                                            }
-                                        })}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filters.categories.includes(cat.id)
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                            }`}
-                                    >
-                                        {cat.name}
-                                    </button>
-                                ))}
+                            <div className="space-y-1">
+                                {Object.entries(
+                                    clothingCategories.reduce((acc, cat) => {
+                                        const g = cat.group || 'Другое'
+                                        if (!acc[g]) acc[g] = []
+                                        acc[g].push(cat)
+                                        return acc
+                                    }, {})
+                                ).map(([group, cats]) => {
+                                    const hasActive = cats.some(c => filters.categories.includes(c.id))
+                                    const selectedCount = cats.filter(c => filters.categories.includes(c.id)).length
+                                    return (
+                                        <details key={group} open={hasActive} className="group">
+                                            <summary className={`flex items-center justify-between cursor-pointer px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasActive ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                                }`}>
+                                                <span>{group}</span>
+                                                <span className="flex items-center gap-1">
+                                                    {selectedCount > 0 && (
+                                                        <span className="text-xs bg-primary text-white px-1.5 py-0.5 rounded-full">{selectedCount}</span>
+                                                    )}
+                                                    <Icon name="chevron-down" size={14} className="opacity-40 transition-transform group-open:rotate-180" />
+                                                </span>
+                                            </summary>
+                                            <div className="flex flex-wrap gap-1.5 mt-1.5 ml-2 mb-1">
+                                                {cats.map(cat => (
+                                                    <button
+                                                        key={cat.id}
+                                                        onClick={() => setFilters(prev => {
+                                                            const exists = prev.categories.includes(cat.id)
+                                                            return {
+                                                                ...prev,
+                                                                categories: exists ? prev.categories.filter(c => c !== cat.id) : [...prev.categories, cat.id]
+                                                            }
+                                                        })}
+                                                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${filters.categories.includes(cat.id)
+                                                            ? 'bg-primary text-white'
+                                                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                                            }`}
+                                                    >
+                                                        {cat.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </details>
+                                    )
+                                })}
                             </div>
                         </div>
 
